@@ -1,0 +1,31 @@
+# pyproject.toml
+
+[build-system]
+requires      = ["setuptools>=63.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rpa-pdf"
+version = "1.0.1"
+description = "Pdf actions for RPA"
+readme = "README.md"
+authors = [{ name = "Grzegorz Ziolo", email = "grzegorz.ziolo@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["rpa", "pdf"]
+dependencies = [
+    "PyPDF2 >= 1.28.5",
+    "fpdf2 >= 2.5.6",
+    "python-barcode >= 0.14.0",
+]
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["black", "bumpver", "isort", "pip-tools", "unitest"]
+
+[project.urls]
+Homepage = "https://github.com/21010/rpa-pdf"

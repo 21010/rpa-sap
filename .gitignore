@@ -1,0 +1,20 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+# VS Code
+/.vscode/
+.vscode
+/__pychache__/
+
+# temps
+/rpa_pdf/exec/sumatrapdfcache/
+/rpa_pdf/exec/SumatraPDF-settings.txt
+
+# GitHub
+/.github/
