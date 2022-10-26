@@ -19,5 +19,5 @@
 # GitHub
 /.github/
 
-# tests
-/tests/
+# credentials for tests
+/tests/credentials.json
