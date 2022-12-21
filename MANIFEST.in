@@ -1,4 +1,1 @@
 # MANIFEST.in
-
-include rpa_pdf/exec/sumatra.exe
-include rpa_pdf/fonts/*.ttf

@@ -5,9 +5,9 @@ requires      = ["setuptools>=63.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rpa-pdf"
-version = "1.0.1"
-description = "Pdf actions for RPA"
+name = "rpa-sap"
+version = "1.0.2"
+description = "SAPGUI actions for RPA"
 readme = "README.md"
 authors = [{ name = "Grzegorz Ziolo", email = "grzegorz.ziolo@gmail.com" }]
 license = { file = "LICENSE" }
@@ -16,11 +16,10 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-keywords = ["rpa", "pdf"]
+keywords = ["rpa", "sap"]
 dependencies = [
-    "PyPDF2 >= 1.28.5",
-    "fpdf2 >= 2.5.6",
-    "python-barcode >= 0.14.0",
+    "pywin32 >= 303",
+    "pandas >= 1.4.4"
 ]
 requires-python = ">=3.10"
 
@@ -28,4 +27,4 @@ requires-python = ">=3.10"
 dev = ["black", "bumpver", "isort", "pip-tools", "unitest"]
 
 [project.urls]
-Homepage = "https://github.com/21010/rpa-pdf"
+Homepage = "https://github.com/21010/rpa-sap"
