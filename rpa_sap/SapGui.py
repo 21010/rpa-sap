@@ -2,11 +2,16 @@
 
 from os import getlogin
 import subprocess
-from time import sleep
+import time
 import datetime
 import re
 import win32com.client
+import win32api
+import win32con
+import warnings
+import wmi
 from .lib.GridView import GridView
+from .lib.SQ01 import SQ01
 from .lib.common import GuiObject, StatusBar
 
 class SapGui:
@@ -25,18 +30,19 @@ class SapGui:
         sap.close_sap_logon()\n\r
     """
     def __init__(self):
-        self.__sap_gui: win32com.client.CDispatch = None
-        self.__application: win32com.client.CDispatch = None
+        self.sap_gui: win32com.client.CDispatch = None
+        self.application: win32com.client.CDispatch = None
         self.active_connection: win32com.client.CDispatch = None
         self.active_session: win32com.client.CDispatch = None
         self.active_window: win32com.client.CDispatch = None
         self.active_objects: list[GuiObject] = []
         self.grid_view = GridView(self)
+        self.sq01 = SQ01(self)
 
     @property
     def connections(self):
         """ Returns: Collection of all SAP connections """
-        return self.__application.Connections
+        return self.application.Connections
 
     @property
     def sessions(self):
@@ -63,14 +69,24 @@ class SapGui:
         """
         # Run sapgui.exe with connection string as a parameter
         try:
-            subprocess.check_call(['C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe', connection_string])
+            w = wmi.WMI()
+            w.Win32_Process.Create(CommandLine="C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe " + connection_string)
         except (subprocess.CalledProcessError, subprocess.SubprocessError) as ex:
-            raise Exception from ex
-        # Wait to make sure the SAPGUI is opened
-        sleep(timeout)
+            self.close_sap_logon()
+            raise ex
+        
+        # detect if SAPGUI process is running and not busy
         # Connect to the SAP session by checking the SID, Client and the User ID
-        self.__sap_gui = win32com.client.GetObject('SAPGUI')
-        self.__application = self.__sap_gui.GetScriptingEngine
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                self.sap_gui = win32com.client.GetObject('SAPGUI')
+                self.application = self.sap_gui.GetScriptingEngine
+                break
+            except Exception:
+                time.sleep(1)
+                pass
+    
         #self.active_connection = self.__application.Connections[self.__application.Connections.Count - 1]
         self.active_connection = self.connections[self.connections.Count - 1]
         #self.active_session = self.active_connection.Sessions[self.active_connection.Sessions.Count - 1]
@@ -123,8 +139,8 @@ class SapGui:
             Exception: Cannot connect to SAPGUI session. SAPGUI seems to be not opened.
         """
         try:
-            self.__sap_gui = win32com.client.GetObject('SAPGUI')
-            self.__application = self.__sap_gui.GetScriptingEngine
+            self.sap_gui = win32com.client.GetObject('SAPGUI')
+            self.application = self.sap_gui.GetScriptingEngine
         except Exception as ex:
             raise Exception('Cannot connect to SAPGUI session. SAPGUI seems to be not opened.') from ex
         try:
@@ -144,7 +160,7 @@ class SapGui:
             if connection_index is None and session_index is None:
                 # case connection details are used
                 if user_id is not None and sid is not None and application_server is not None and client is not None:
-                    for connection in self.__application.Connections:
+                    for connection in self.application.Connections:
                         for session in connection.Sessions:
                             if session.Info.SystemName == sid.upper() and session.Info.Client == client and session.Info.User == user_id.upper() and session.Info.ApplicationServer.upper() == application_server.upper():
                                 self.active_connection = connection
@@ -172,11 +188,11 @@ class SapGui:
             bool: True if session exists, False if not.
         """
         try:
-            self.__sap_gui = win32com.client.GetObject('SAPGUI')
-            self.__application = self.__sap_gui.GetScriptingEngine
-            con_index = connection_index if connection_index is not None else self.__application.Connections.Count - 1
-            ses_index = session_index if session_index is not None else self.__application.Connections[con_index].Sessions.Count - 1
-            obj = self.__application.Connections[con_index].Sessions[ses_index]
+            self.sap_gui = win32com.client.GetObject('SAPGUI')
+            self.application = self.sap_gui.GetScriptingEngine
+            con_index = connection_index if connection_index is not None else self.application.Connections.Count - 1
+            ses_index = session_index if session_index is not None else self.application.Connections[con_index].Sessions.Count - 1
+            obj = self.application.Connections[con_index].Sessions[ses_index]
             # return True if obj is not None else False
             return obj is not None
         except Exception:
@@ -201,9 +217,9 @@ class SapGui:
         Closes all opened SAP sessions for all opened connections.
         """
         try:
-            self.__sap_gui = win32com.client.GetObject('SAPGUI')
-            self.__application = self.__sap_gui.GetScriptingEngine
-            for connection in self.__application.Connections:
+            self.sap_gui = win32com.client.GetObject('SAPGUI')
+            self.application = self.sap_gui.GetScriptingEngine
+            for connection in self.application.Connections:
                 for session in connection.Sessions:
                     connection.CloseSession(session.Id)
         except:
@@ -274,7 +290,7 @@ class SapGui:
         Returns:
             int: number value
         """
-        return self.__application.Connections.Count
+        return self.application.Connections.Count
 
     def count_sessions(self, connection_index: int = None) -> int:
         """
@@ -364,14 +380,30 @@ class SapGui:
 
     # Sap Logon
 
-    def close_sap_logon(self):
+    def close_sap_logon(self, username: str = None):
         """
-        Closes Sap Logon application.
+        Closes Sap Logon application opened by the specific user.
+        If username is not provided the currently logged user is used.
+        """
+        self.close_process('saplogon.exe')
+    
+    def close_process(self, process_name: str, username: str = None):
+        """
+        Closes Windows process opened by the specific user.
+        If username is not provided the currently logged user is used.
         """
         try:
-            subprocess.check_call(f'taskkill /F /IM saplogon.exe /T /FI "USERNAME eq {getlogin()}"', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            c = wmi.WMI()
+            username = getlogin() if username is None else username
+            
+            for process in c.Win32_Process(name=process_name):
+                process_owner = process.GetOwner()
+                if username.upper() in process_owner or username.lower() in process_owner:
+                    handle = win32api.OpenProcess(win32con.PROCESS_TERMINATE, 0, process.ProcessId)
+                    win32api.TerminateProcess(handle, -1)
+                    win32api.CloseHandle(handle)
         except:
-            pass
+            warnings.warn(f'Process {process_name} not found.', UserWarning)
 
     # Objects
 
@@ -385,7 +417,7 @@ class SapGui:
         Returns:
             win32com.client.CDispatch:  Any
         """
-        return self.__get_object(field_id)
+        return self.__get_object__(field_id)
 
     def get_object_type(self, field_id: str) -> str:
         """
@@ -397,7 +429,7 @@ class SapGui:
         Returns:
             str: type name
         """
-        return self.__get_object(field_id).Type
+        return self.__get_object__(field_id).Type
 
     def check_if_object_exists(self, field_id: str) -> bool:
         """
@@ -435,7 +467,7 @@ class SapGui:
         _time = datetime.datetime.now()
         _time += datetime.timedelta(seconds=timeout) if isinstance(timeout, int) else timeout
         while datetime.datetime.now() < _time and self.check_if_object_exists(field_id) is False:
-            sleep(1)
+            time.sleep(1)
         if ignore_timeout is False:
             raise Exception(f'Sap object {field_id} couldn\'t be found.')
 
@@ -453,7 +485,7 @@ class SapGui:
 
         Full list of vitual keys: https://experience.sap.com/files/guidelines/References/nv_fkeys_ref2_e.htm
         """
-        window = self.__get_object(f'wnd[{window_index}]')
+        window = self.__get_object__(f'wnd[{window_index}]')
         window.SendVKey(key)
 
     def press_enter(self, window_index: int = 0):
@@ -463,7 +495,7 @@ class SapGui:
         Args:
             window_index (int, optional): The index of Sap Window; Defaults to 0.
         """
-        window = self.__get_object(f'wnd[{window_index}]')
+        window = self.__get_object__(f'wnd[{window_index}]')
         window.SendVKey(0)
 
     def press_F2(self, window_index: int = 0):
@@ -472,7 +504,7 @@ class SapGui:
         Args:
             window_index (int, optional): window id. Defaults to 0.
         """
-        window = self.__get_object(f'wnd[{window_index}]')
+        window = self.__get_object__(f'wnd[{window_index}]')
         window.SendVKey(2)
 
     def press_F3(self, window_index: int = 0):
@@ -481,7 +513,7 @@ class SapGui:
         Args:
             window_index (int, optional): window id. Defaults to 0.
         """
-        window = self.__get_object(f'wnd[{window_index}]')
+        window = self.__get_object__(f'wnd[{window_index}]')
         window.SendVKey(3)
 
     def press_F8(self, window_index: int = 0):
@@ -490,7 +522,7 @@ class SapGui:
         Args:
             window_index (int, optional): window id. Defaults to 0.
         """
-        window = self.__get_object(f'wnd[{window_index}]')
+        window = self.__get_object__(f'wnd[{window_index}]')
         window.SendVKey(8)
 
     def set_focus(self, field_id: str):
@@ -500,7 +532,7 @@ class SapGui:
         Args:
             field_id (str): Field Id
         """
-        self.__get_object(field_id).SetFocus()
+        self.__get_object__(field_id).SetFocus()
 
     def run_transaction(self, transaction_code: str):
         """
@@ -531,7 +563,7 @@ class SapGui:
         Returns:
             StatusBar: StatusBar(text, type)
         """
-        status_bar = self.__get_object(f'wnd[{window_index}]/sbar')
+        status_bar = self.__get_object__(f'wnd[{window_index}]/sbar')
         return StatusBar(status_bar.Text, status_bar.MessageType)
 
     def get_text(self, field_id: str) -> str:
@@ -544,7 +576,7 @@ class SapGui:
         Returns:
             str: text value
         """
-        return self.__get_object(field_id).Text
+        return self.__get_object__(field_id).Text
 
     def set_text(self, field_id: str, text: str):
         """
@@ -554,7 +586,7 @@ class SapGui:
             field_id (str): Field id
             text (str): text value
         """
-        self.__get_object(field_id).Text = text
+        self.__get_object__(field_id).Text = text
 
     def select(self, field_id: str):
         """
@@ -563,7 +595,7 @@ class SapGui:
         Args:
             field_id (str): Field id
         """
-        self.__get_object(field_id).Select()
+        self.__get_object__(field_id).Select()
 
     def select_combobox_item(self, field_id: str, key_id: str):
         """
@@ -573,7 +605,7 @@ class SapGui:
             field_id (str): ComboBox object field id
             key_id (str): key id of the item
         """
-        self.__get_object(field_id).Key = key_id
+        self.__get_object__(field_id).Key = key_id
 
     def check_checkbox(self, field_id: str):
         """
@@ -582,7 +614,7 @@ class SapGui:
         Args:
             field_id (str): Field id
         """
-        self.__get_object(field_id).Selected = True
+        self.__get_object__(field_id).Selected = True
 
     def uncheck_checkbox(self, field_id: str):
         """
@@ -591,7 +623,7 @@ class SapGui:
         Args:
             field_id (str): Field id
         """
-        self.__get_object(field_id).Selected = False
+        self.__get_object__(field_id).Selected = False
 
     def set_checkbox_state(self, field_id: str, state: bool):
         """
@@ -601,7 +633,7 @@ class SapGui:
             field_id (str): Field id
             state (bool): True (checked) or False (unchecked)
         """
-        self.__get_object(field_id).Selected = state
+        self.__get_object__(field_id).Selected = state
 
     def get_checkbox_state(self, field_id: str) -> bool:
         """
@@ -613,7 +645,7 @@ class SapGui:
         Returns:
             bool: True if checkbox is checked or False if not checked
         """
-        return self.__get_object(field_id).Selected
+        return self.__get_object__(field_id).Selected
 
     def select_context_menu_item(self, field_id: str, item_id: str):
         """
@@ -623,7 +655,7 @@ class SapGui:
             field_id (str): Context menu field id.
             item_id (str): Menu item id.
         """
-        self.__get_object(field_id).SelectContextMenuItem(item_id)
+        self.__get_object__(field_id).SelectContextMenuItem(item_id)
 
     def press_context_menu_item(self, field_id: str, item_id: str):
         """
@@ -633,7 +665,7 @@ class SapGui:
             field_id (str): Context menu field id
             item_id (str): Menu item id
         """
-        self.__get_object(field_id).PressContextButton(item_id)
+        self.__get_object__(field_id).PressContextButton(item_id)
 
     def press_button(self, field_id: str):
         """
@@ -642,7 +674,7 @@ class SapGui:
         Args:
             field_id (str): Field id
         """
-        self.__get_object(field_id).press()
+        self.__get_object__(field_id).press()
 
     def double_click(self, field_id: str):
         """
@@ -651,7 +683,7 @@ class SapGui:
         Args:
             field_id (str): Field id.
         """
-        self.__get_object(field_id).doubleClick()
+        self.__get_object__(field_id).doubleClick()
 
 
     # Custom properties and methods
@@ -665,7 +697,7 @@ class SapGui:
             property_name (str): Property name
             property_value (_type_): Value to be set
         """
-        setattr(self.__get_object(field_id), property_name, property_value)
+        setattr(self.__get_object__(field_id), property_name, property_value)
 
     def get_property(self, field_id: str, property_name: str):
         """
@@ -678,7 +710,7 @@ class SapGui:
         Returns:
             object: Value of the property.
         """
-        return getattr(self.__get_object(field_id), property_name)
+        return getattr(self.__get_object__(field_id), property_name)
 
     def invoke_method(self, field_id: str, method_name: str, *args):
         """
@@ -692,14 +724,15 @@ class SapGui:
         Returns:
             object: Value returned by the method.
         """
-        return getattr(self.__get_object(field_id), method_name)(*args)
+        return getattr(self.__get_object__(field_id), method_name)(*args)
 
 
     # Magic methods
-    def __get_object(self, field_id: str):
-        if not self.__is_object__(field_id):
+    def __get_object__(self, field_id: str):
+        try:
+            return self.active_session.findById(field_id)
+        except:
             raise Exception(f'Cannot find the field: {field_id}.')
-        return self.active_session.findById(field_id)
 
     def __is_object__(self, field_id: str):
         try:

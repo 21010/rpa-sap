@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rpa-sap"
-version = "1.1.0"
+version = "1.1.2"
 description = "SAPGUI actions for RPA"
 readme = "README.md"
 authors = [{ name = "Grzegorz Ziolo", email = "grzegorz.ziolo@gmail.com" }]
@@ -19,7 +19,8 @@ classifiers = [
 keywords = ["rpa", "sap"]
 dependencies = [
     "pywin32 >= 303",
-    "pandas >= 1.4.4"
+    "pandas >= 1.4.4",
+    "wmi >= 1.5.1"
 ]
 requires-python = ">=3.10"
 

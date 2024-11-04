@@ -10,7 +10,7 @@ class GridView:
         self.sap_gui = sap_gui
 
     def get_object(self, field_id: str):
-        return self.sap_gui.object(field_id)
+        return self.sap_gui.get_object(field_id)
 
     def count_rows(self, grid_view_id: str) -> int:
         """
@@ -207,8 +207,8 @@ class GridView:
 
         Args:
             grid_view_id (str): GridView field id
-            row_index (int, optional): _description_. Defaults to None.
-            column_index (int, optional): _description_. Defaults to None.
+            row_index (int, optional): Row index. Defaults to None.
+            column_index (int, optional): Column index. Defaults to None.
         """
         grid_view = self.get_object(grid_view_id)
         if row_index is not None or column_index is not None:
@@ -254,6 +254,16 @@ class GridView:
         return grid_view.GetCellState(r_index, self.__get_column_name__(grid_view, c_index))
 
     def get_cell_value(self, grid_view_id: str, row_index: int = None, column_index: int = None) -> object:
+        """ Return the value of the GridView cell
+
+        Args:
+            grid_view_id (str): Field id
+            row_index (int, optional): Row index. Defaults to None.
+            column_index (int, optional): Column index. Defaults to None.
+
+        Returns:
+            object: value (Any)
+        """
         grid_view = self.get_object(grid_view_id)
         r_index = row_index if row_index is not None else self.get_current_row_index
         c_index = column_index if column_index is not None else self.get_current_column_index
@@ -270,9 +280,8 @@ class GridView:
     def press_toolbar_context_button_and_select_context_menu_item(self, grid_view_id: str, button_id: str, function_code: str):
         grid_view = self.get_object(grid_view_id)
         grid_view.pressToolbarContextButton(button_id)
-        sleep(1)
+        # sleep(1)
         grid_view.selectContextMenuItem(function_code)
-        grid_view.ActiveWindow.setFocus()
 
     def select_all_cells(self, grid_view_id: str):
         grid_view = self.get_object(grid_view_id)

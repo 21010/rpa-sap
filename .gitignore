@@ -10,14 +10,13 @@
 # VS Code
 /.vscode/
 .vscode
-/__pychache__/
-
-# temps
-/rpa_pdf/exec/sumatrapdfcache/
-/rpa_pdf/exec/SumatraPDF-settings.txt
+__pychache__
 
 # GitHub
 /.github/
 
 # credentials for tests
 /tests/credentials.json
+
+# virtual env
+.venv
