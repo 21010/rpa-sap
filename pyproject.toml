@@ -9,7 +9,7 @@ name = "rpa-sap"
 version = "1.2.0"
 description = "SAPGUI actions for RPA"
 readme = "README.md"
-authors = [{ name = "Grzegorz Ziolo", email = "kontakt@ziolo.be" }]
+authors = [{ name = "Grzegorz Ziolo"}]
 license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
