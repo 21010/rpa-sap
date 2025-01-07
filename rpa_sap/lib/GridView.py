@@ -1,12 +1,12 @@
-from time import sleep
 from collections import namedtuple
 import win32com.client
 from pandas import DataFrame
+from .. import SapGui
 
 Cell_Address = namedtuple('Cell_Address', ['row', 'column'])
 
 class GridView:
-    def __init__(self, sap_gui):
+    def __init__(self, sap_gui: SapGui):
         self.sap_gui = sap_gui
 
     def get_object(self, field_id: str):
@@ -201,6 +201,24 @@ class GridView:
         grid_view = self.get_object(grid_view_id)
         grid_view.ClearSelection()
 
+    def click_cell(self, grid_view_id: str, row_index: int = None, column_index: int = None):
+        """
+        Click the cell of GridView object.
+
+        Args:
+            grid_view_id (str): GridView field id
+            row_index (int, optional): Row index. Defaults to None.
+            column_index (int, optional): Column index. Defaults to None.
+        """
+        grid_view = self.get_object(grid_view_id)
+        if row_index is not None or column_index is not None:
+            column_name: str = self.__get_column_name__(grid_view, self.get_current_column_index(grid_view_id)) if column_index is None else self.__get_column_name__(grid_view, column_index)
+            row_index = self.get_current_row_index(grid_view_id) if row_index is None else row_index
+            grid_view.SetCurrentCell(row_index, column_name)
+            grid_view.currentCellRow = row_index
+            grid_view.selectedRows = row_index
+        grid_view.ClickCurrentCell()
+
     def double_click_cell(self, grid_view_id: str, row_index: int = None, column_index: int = None):
         """
         Double click the cell of GridView object.
@@ -220,6 +238,16 @@ class GridView:
         grid_view.DoubleClickCurrentCell()
 
     def convert_column_index_to_name(self, grid_view_id: str, column_name: str) -> int:
+        """
+        Returns column name by given column index.
+
+        Args:
+            grid_view_id (str): GridView field id
+            column_name (str): Column name
+        
+        Returns:
+            int: Column index
+        """
         grid_view = self.get_object(grid_view_id)
         column_index: int
         for column_index in range(0, grid_view.ColumnCount):

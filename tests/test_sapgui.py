@@ -17,16 +17,30 @@ class TestSapGui(TestCase):
         
         self.assertEqual(test_value, excpected_value)
 
+    def test_close_sap_session(self):
+        SAPGUI.activate_session()
+        SAPGUI.close_session()
+        SAPGUI.close_sap_logon()
+
     def test_activate_session(self):
         SAPGUI.open_new_session(SECRETS['connection_string'], SECRETS['user_id'], SECRETS['password'], SECRETS['client'], SECRETS['language'])
         SAPGUI.activate_session(0,0)
-        self.assertEqual(SAPGUI.get_session_index(), 0)
         self.assertEqual(SAPGUI.get_connection_index(), 0)
+        self.assertEqual(SAPGUI.get_session_index(), 0)
 
         SAPGUI.open_new_session(SECRETS['connection_string'], SECRETS['user_id'], SECRETS['password'], SECRETS['client'], SECRETS['language'])
         SAPGUI.activate_session()
-        self.assertEqual(SAPGUI.get_session_index(), 0)
         self.assertEqual(SAPGUI.get_connection_index(), 1)
+        self.assertEqual(SAPGUI.get_session_index(), 0)
+
+        SAPGUI.open_new_session(SECRETS['connection_string'], SECRETS['user_id'], SECRETS['password'], SECRETS['client'], SECRETS['language'])
+        SAPGUI.activate_session()
+        self.assertEqual(SAPGUI.get_connection_index(), 2)
+        self.assertEqual(SAPGUI.get_session_index(), 0)
+
+        SAPGUI.activate_session(0,0)
+        self.assertEqual(SAPGUI.get_connection_index(), 0)
+        self.assertEqual(SAPGUI.get_session_index(), 0)
 
         SAPGUI.close_all_sessions()
         SAPGUI.close_sap_logon()

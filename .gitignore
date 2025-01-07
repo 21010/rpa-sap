@@ -18,5 +18,8 @@ __pychache__
 # credentials for tests
 /tests/credentials.json
 
+# output folder
+/.output/
+
 # virtual env
 .venv
