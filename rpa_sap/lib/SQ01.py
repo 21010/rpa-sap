@@ -64,7 +64,7 @@ class SQ01():
         if statusbar.type == 'E':
             raise Exception(f'Error: {statusbar.text}')
 
-    def execute_query(self, time_limit: int = 300):
+    def execute_query(self):
         self.sap_gui.press_button('wnd[0]/tbar[1]/btn[8]')
 
     def to_local_file(self, folder_path: str, file_name: str, file_type: str = 'xls'):
@@ -79,7 +79,7 @@ class SQ01():
         # enter file name
         self.sap_gui.set_text('wnd[1]/usr/ctxtDY_FILENAME', file_name)
         # set code pate
-        self.sap_gui.set_text('wnd[1]/usr/ctxtDY_FILE_ENCODING', '0000')
+        self.sap_gui.set_text('wnd[1]/usr/ctxtDY_FILE_ENCODING', '0000' if file_type == 'xls' else '0004' if file_type == 'csv' else '0000')
         # Press OK button
         self.sap_gui.press_button('wnd[1]/tbar[0]/btn[11]')
         # Verify status bar

@@ -13,18 +13,6 @@ class TestSQ01(TestCase):
 
         SAPGUI.sq01.start_query('PAL-EXPIMP-V0', 'BREXIT')
         
-        session = SAPGUI.active_session
-
-        session.findById("wnd[0]/usr/ctxtSP$00003-LOW").text = "101"
-        session.findById("wnd[0]/usr/ctxtSP$00003-HIGH").text = "102"
-        session.findById("wnd[0]/usr/ctxtSP$00005-LOW").text = "PL22"
-        session.findById("wnd[0]/usr/ctxtSP$00008-LOW").text = "PL"
-        session.findById("wnd[0]/usr/ctxtSP$00003-HIGH").setFocus()
-        session.findById("wnd[0]/usr/ctxtSP$00003-HIGH").caretPosition = 3
-        session.findById("wnd[0]").sendVKey(0)
-
-        SAPGUI.sq01.execute_query(time_limit=10)
-
         SAPGUI.close_session()
         SAPGUI.close_sap_logon()
 

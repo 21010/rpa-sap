@@ -12,6 +12,7 @@ import warnings
 import wmi
 from .lib.GridView import GridView
 from .lib.SQ01 import SQ01
+from .lib.GuiTableControl import GuiTableControl
 from .lib.common import GuiObject, StatusBar
 
 class SapGui:
@@ -38,6 +39,7 @@ class SapGui:
         self.active_objects: list[GuiObject] = []
         self.grid_view = GridView(self)
         self.sq01 = SQ01(self)
+        self.gui_table_control = GuiTableControl(self)
 
     @property
     def connections(self):
@@ -51,7 +53,7 @@ class SapGui:
 
     # Session
 
-    def open_new_session(self, connection_string: str, user_id: str, password: str, client: str = '900', language: str = "EN", timeout: int = 10) -> bool:
+    def open_new_session(self, connection_string: str, user_id: str, password: str, client: str = '900', language: str = "EN", timeout: int = 10, step: int = 1) -> bool:
         """
         Opens and logs in to new SAP session.
 
@@ -69,8 +71,8 @@ class SapGui:
         """
         # Run sapgui.exe with connection string as a parameter
         try:
-            w = wmi.WMI()
-            w.Win32_Process.Create(CommandLine="C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe " + connection_string)
+            subprocess.check_call(['C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe', connection_string])
+            time.sleep(step)
         except (subprocess.CalledProcessError, subprocess.SubprocessError) as ex:
             self.close_sap_logon()
             raise ex
@@ -82,15 +84,14 @@ class SapGui:
             try:
                 self.sap_gui = win32com.client.GetObject('SAPGUI')
                 self.application = self.sap_gui.GetScriptingEngine
+                self.active_connection = self.connections[self.connections.Count - 1]
+                self.active_session = self.sessions[self.sessions.Count - 1]
                 break
             except Exception:
-                time.sleep(1)
+                time.sleep(step)
                 pass
-    
-        #self.active_connection = self.__application.Connections[self.__application.Connections.Count - 1]
-        self.active_connection = self.connections[self.connections.Count - 1]
-        #self.active_session = self.active_connection.Sessions[self.active_connection.Sessions.Count - 1]
-        self.active_session = self.sessions[self.sessions.Count - 1]
+
+        # Get main window
         self.active_window = self.active_session.findById('wnd[0]')
         # Maximize window
         self.active_window.maximize()
@@ -146,8 +147,6 @@ class SapGui:
         try:
             # case connection index and session index is passed
             if connection_index is not None and session_index is not None:
-                #self.active_connection = self.__application.Connections[connection_index]
-                #self.active_session = self.active_connection.Sessions[session_index]
                 self.active_connection = self.connections[connection_index]
                 self.active_session = self.sessions[session_index]
 
@@ -167,8 +166,6 @@ class SapGui:
                                 self.active_session = session
                 # case when latest connection and session is used
                 else:
-                    #self.active_connection = self.__application.Connections[self.__application.Connections.Count - 1]
-                    #self.active_session = self.active_connection.Sessions[self.active_connection.Sessions.Count - 1]
                     self.active_connection = self.connections[self.connections.Count - 1]
                     self.active_session = self.sessions[self.sessions.Count - 1]
 
