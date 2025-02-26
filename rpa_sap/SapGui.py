@@ -382,7 +382,7 @@ class SapGui:
         Closes Sap Logon application opened by the specific user.
         If username is not provided the currently logged user is used.
         """
-        self.close_process('saplogon.exe')
+        self.close_process('saplogon.exe', username)
     
     def close_process(self, process_name: str, username: str = None):
         """

@@ -10,7 +10,7 @@
 # VS Code
 /.vscode/
 .vscode
-__pychache__
+__pycache__
 
 # GitHub
 /.github/
