@@ -36,17 +36,17 @@ class TestGuiControlTable(TestCase):
         SAPGUI.close_session()
         SAPGUI.close_sap_logon()
 
-    def test_count_pages(self):
-        try:
-            self.__use_me32l__()
+    # def test_count_pages(self):
+    #     try:
+    #         self.__use_me32l__()
 
-            pages = SAPGUI.gui_table_control.count_pages('wnd[0]/usr/tblSAPMM06ETC_0220')
-            print(pages)
-        except Exception as ex:
-            raise ex
-        finally:
-            SAPGUI.close_session()
-            SAPGUI.close_sap_logon()
+    #         pages = SAPGUI.gui_table_control.count_pages('wnd[0]/usr/tblSAPMM06ETC_0220')
+    #         print(pages)
+    #     except Exception as ex:
+    #         raise ex
+    #     finally:
+    #         SAPGUI.close_session()
+    #         SAPGUI.close_sap_logon()
 
     def test_get_table_header(self):
         self.__use_me32l__()

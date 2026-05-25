@@ -1,31 +1,18 @@
-# pyproject.toml
-
-[build-system]
-requires      = ["setuptools>=63.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "rpa-sap"
-version = "1.2.0"
-description = "SAPGUI actions for RPA"
+version = "1.2.7"
+description = "SAPGUI scripting automation"
 readme = "README.md"
-authors = [{ name = "Grzegorz Ziolo"}]
-license = { file = "LICENSE" }
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-]
-keywords = ["rpa", "sap"]
-dependencies = [
-    "pywin32 >= 303",
-    "pandas >= 1.4.4",
-    "wmi >= 1.5.1"
-]
 requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
+    "pywin32>=311",
+    "wmi>=1.5.1",
+]
 
-[project.optional-dependencies]
-dev = ["black", "bumpver", "isort", "pip-tools", "unitest"]
-
-[project.urls]
-Homepage = "https://github.com/21010/rpa-sap"
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "pytest>=8.4.2",
+]
