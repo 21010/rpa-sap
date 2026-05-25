@@ -1,4 +1,8 @@
 # RPA_SAP
+[![CI](https://github.com/21010/rpa-sap/actions/workflows/ci.yml/badge.svg)](https://github.com/21010/rpa-sap/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive Python module for automating SAP GUI operations (SAP Scripting) and RFC (Remote Function Call) integration. Designed to easily integrate with modern RPA frameworks (e.g., Robocorp) and standard Python automation scripts.
 
 ## Business Benefits
