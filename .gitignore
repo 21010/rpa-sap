@@ -14,9 +14,6 @@ __pycache__
 
 # GitHub
 
-# credentials for tests
-/tests/credentials.json
-
 # output folder
 /.output/
 
