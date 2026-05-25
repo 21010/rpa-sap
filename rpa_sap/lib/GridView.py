@@ -4,17 +4,17 @@ import win32com.client
 
 from pandas import DataFrame
 
-from .. import SapGui
+from ..core.session import SapSession
 
 Cell_Address = namedtuple("Cell_Address", ["row", "column"])
 
 
 class GridView:
-    def __init__(self, sap_gui: SapGui):
-        self.sap_gui = sap_gui
+    def __init__(self, sap_session: SapSession):
+        self.sap_session = sap_session
 
     def get_object(self, field_id: str):
-        return self.sap_gui.get_object(field_id)
+        return self.sap_session.interactor._get_object(field_id)
 
     def count_rows(self, grid_view_id: str) -> int:
         """

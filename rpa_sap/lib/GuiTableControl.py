@@ -5,7 +5,7 @@ import numpy as np
 import re
 import math
 import warnings
-from .. import SapGui
+from ..core.session import SapSession
 
 Column = namedtuple("Column", ["name", "title", "cells"])
 Row = namedtuple("Row", ["index", "cells"])
@@ -16,11 +16,11 @@ Cell = namedtuple(
 
 
 class GuiTableControl:
-    def __init__(self, sap_gui: SapGui):
-        self.sap_gui = sap_gui
+    def __init__(self, sap_session: SapSession):
+        self.sap_session = sap_session
 
     def get_object(self, field_id: str):
-        return self.sap_gui.get_object(field_id)
+        return self.sap_session.interactor._get_object(field_id)
 
     def count_columns(self, field_id: str) -> int:
         gui_table_control = self.get_object(field_id)
@@ -42,14 +42,11 @@ class GuiTableControl:
         """
         gui_table_control = self.get_object(field_id)
         columns = {}
-        
+
         # We iterate by index to ensure order and uniqueness
         for i in range(gui_table_control.Columns.Count):
             col_obj = gui_table_control.Columns.Item(i)
-            columns[i] = {
-                "name": col_obj.Name, 
-                "title": col_obj.Title
-            }
+            columns[i] = {"name": col_obj.Name, "title": col_obj.Title}
         return columns
 
     # get column
@@ -89,18 +86,20 @@ class GuiTableControl:
             target_col_index = column_index
         elif isinstance(column_title, str):
             for idx, data in columns.items():
-                if data['title'] == column_title:
-                    column_name = data['name']
+                if data["title"] == column_title:
+                    column_name = data["name"]
                     target_col_index = idx
                     break
         elif isinstance(column_name, str):
             for idx, data in columns.items():
-                if data['name'] == column_name:
-                    column_title = data['title']
+                if data["name"] == column_name:
+                    column_title = data["title"]
                     target_col_index = idx
                     break
         else:
-            raise Exception("Either column_index, column_name or column_title must be specified.")
+            raise Exception(
+                "Either column_index, column_name or column_title must be specified."
+            )
 
         if target_col_index == -1:
             raise Exception(f"Column not found: {column_name or column_title}")
@@ -135,7 +134,9 @@ class GuiTableControl:
 
             # scroll to the next page
             if page < pages - 1:
-                self.get_object(field_id).VerticalScrollbar.Position = (page + 1) * page_size
+                self.get_object(field_id).VerticalScrollbar.Position = (
+                    page + 1
+                ) * page_size
 
         # return resuls
         return Column(name=column_name, title=column_title, cells=cells)
@@ -169,8 +170,8 @@ class GuiTableControl:
                     id=self.__extract_field_id__(row[cell].Id),
                     row_index=absolute_row_index,
                     column_index=column_index,
-                    column_name=col_data['name'],
-                    column_title=col_data['title'],
+                    column_name=col_data["name"],
+                    column_title=col_data["title"],
                     type=row[cell].Type,
                     text=row[cell].Text,
                 )
@@ -281,53 +282,61 @@ class GuiTableControl:
                 for child in self.get_object(field_id).Children:
                     if child.Text.lower() == str(value).lower():
                         column_index, row_index = self.__extract_coordinates__(child.Id)
-                        col_data = columns.get(column_index, {"name": child.Name, "title": ""})
-                        
+                        col_data = columns.get(
+                            column_index, {"name": child.Name, "title": ""}
+                        )
+
                         cells.append(
                             Cell(
                                 id=self.__extract_field_id__(child.Id),
                                 row_index=row_index + (page_size * page),
                                 column_index=column_index,
-                                column_name=col_data['name'],
-                                column_title=col_data['title'],
+                                column_name=col_data["name"],
+                                column_title=col_data["title"],
                                 text=child.Text,
                                 type=child.Type,
                             )
                         )
 
                 if page < pages - 1:
-                    self.get_object(field_id).VerticalScrollbar.Position = (page + 1) * page_size
+                    self.get_object(field_id).VerticalScrollbar.Position = (
+                        page + 1
+                    ) * page_size
 
             return cells
 
         # SCENARIO 2: SEARCH BY ROW INDEX AND COLUMN
         elif isinstance(absolute_row_index, int):
             if not (column_name or column_title):
-                 raise Exception("Either column_name or column_title must be specified.")
-            
+                raise Exception("Either column_name or column_title must be specified.")
+
             # Find target column index
             target_col_index = -1
             if isinstance(column_title, str):
                 for idx, data in columns.items():
-                    if data['title'] == column_title:
-                        column_name = data['name']
+                    if data["title"] == column_title:
+                        column_name = data["name"]
                         target_col_index = idx
                         break
             elif isinstance(column_name, str):
                 for idx, data in columns.items():
-                    if data['name'] == column_name:
-                        column_title = data['title']
+                    if data["name"] == column_name:
+                        column_title = data["title"]
                         target_col_index = idx
                         break
 
             self.get_object(field_id).VerticalScrollbar.Position = absolute_row_index
             row = self.get_object(field_id).GetAbsoluteRow(absolute_row_index)
-            
+
             for cell in range(row.Count):
                 column_index, _ = self.__extract_coordinates__(row[cell].Id)
                 # Compare by index if we found one, otherwise fall back to name check
-                match = (column_index == target_col_index) if target_col_index != -1 else (row[cell].Name == column_name)
-                
+                match = (
+                    (column_index == target_col_index)
+                    if target_col_index != -1
+                    else (row[cell].Name == column_name)
+                )
+
                 if match:
                     return Cell(
                         id=self.__extract_field_id__(row[cell].Id),
@@ -369,13 +378,13 @@ class GuiTableControl:
 
         if isinstance(column_title, str):
             for idx, data in columns.items():
-                if data['title'] == column_title:
-                    column_name = data['name']
+                if data["title"] == column_title:
+                    column_name = data["name"]
                     target_col_index = idx
                     break
         elif isinstance(column_name, str):
-             for idx, data in columns.items():
-                if data['name'] == column_name:
+            for idx, data in columns.items():
+                if data["name"] == column_name:
                     target_col_index = idx
                     break
 
@@ -386,14 +395,14 @@ class GuiTableControl:
         # iterate through cells in row and return desired row as Cell object.
         for cell in range(row.Count):
             col_idx, _ = self.__extract_coordinates__(row[cell].Id)
-            
+
             match = False
             if target_col_index != -1:
                 if col_idx == target_col_index:
                     match = True
             elif row[cell].Name == column_name:
                 match = True
-            
+
             if match:
                 if row[cell].Changeable:
                     row[cell].Text = str(value)
@@ -416,7 +425,7 @@ class GuiTableControl:
     ):
         # Raise exception if column_name or column_title is not provided or both values are provided at the same time.
         if not (column_name or column_title):
-             raise Exception("Either column_name or column_title must be specified.")
+            raise Exception("Either column_name or column_title must be specified.")
 
         # get table headers (columns)
         columns = self.get_table_header(field_id)
@@ -426,13 +435,13 @@ class GuiTableControl:
 
         if isinstance(column_title, str):
             for idx, data in columns.items():
-                if data['title'] == column_title:
-                    column_name = data['name']
+                if data["title"] == column_title:
+                    column_name = data["name"]
                     target_col_index = idx
                     break
         elif isinstance(column_name, str):
-             for idx, data in columns.items():
-                if data['name'] == column_name:
+            for idx, data in columns.items():
+                if data["name"] == column_name:
                     target_col_index = idx
                     break
 
@@ -440,8 +449,12 @@ class GuiTableControl:
         row = self.get_object(field_id).GetAbsoluteRow(absolute_row_index)
         for cell in range(row.Count):
             col_idx, _ = self.__extract_coordinates__(row[cell].Id)
-            match = (col_idx == target_col_index) if target_col_index != -1 else (row[cell].Name == column_name)
-            
+            match = (
+                (col_idx == target_col_index)
+                if target_col_index != -1
+                else (row[cell].Name == column_name)
+            )
+
             if match:
                 row[cell].Press()
                 return
@@ -524,26 +537,26 @@ class GuiTableControl:
         """
         # 1. Get headers indexed by position to ensure order and uniqueness
         columns_header = self.get_table_header(field_id)
-        
+
         # 2. Sort indices to ensure we build the list in the correct visual order (0, 1, 2...)
         sorted_indices = sorted(columns_header.keys())
-        
+
         # 3. Extract column titles for the DataFrame header
         # Note: Duplicate titles are allowed in this list.
-        columns = [columns_header[i]['title'] for i in sorted_indices]
-        
+        columns = [columns_header[i]["title"] for i in sorted_indices]
+
         # 4. Build the data rows
         data = []
         for row in self.get_rows(field_id, entire_table):
             # Create a row filled with None to handle potential sparse data or gaps
             row_data = [None] * len(columns)
-            
+
             for cell in row.cells:
                 # Map cell text to its specific column index
                 # This prevents overwriting data if two columns share a name
                 if cell.column_index < len(row_data):
                     row_data[cell.column_index] = cell.text
-            
+
             data.append(row_data)
 
         # 5. Create DataFrame
@@ -572,23 +585,25 @@ class GuiTableControl:
         columns = self.get_table_header(field_id)
         table = []
         gui_table_control = self.get_object(field_id)
-        
+
         for child in gui_table_control.Children:
             col, row = self.__extract_coordinates__(child.Id)
-            
+
             # Lookup metadata by INDEX
             col_data = columns.get(col, {"name": child.Name, "title": ""})
-            
-            table.append({
-                "absolute_row_index": None,
-                "visible_row_index": row,
-                "column_index": col,
-                "title": col_data['title'],
-                "text": child.Text,
-                "name": col_data['name'], # Or child.Name
-                "field_id": self.__extract_field_id__(child.Id),
-                "type": child.Type,
-            })
+
+            table.append(
+                {
+                    "absolute_row_index": None,
+                    "visible_row_index": row,
+                    "column_index": col,
+                    "title": col_data["title"],
+                    "text": child.Text,
+                    "name": col_data["name"],  # Or child.Name
+                    "field_id": self.__extract_field_id__(child.Id),
+                    "type": child.Type,
+                }
+            )
         return table
 
     def __extract_table__(self, field_id: str) -> list:
@@ -603,23 +618,27 @@ class GuiTableControl:
 
             for child in self.get_object(field_id).Children:
                 col, row = self.__extract_coordinates__(child.Id)
-                
+
                 # CRITICAL FIX: Use 'col' index to get metadata, not child.Name
                 col_data = columns.get(col, {"name": child.Name, "title": ""})
 
-                table.append({
-                    "absolute_row_index": row + (page_size * page),
-                    "visible_row_index": row,
-                    "column_index": col,
-                    "title": col_data['title'],
-                    "text": child.Text,
-                    "name": col_data['name'],
-                    "field_id": self.__extract_field_id__(child.Id),
-                    "type": child.Type,
-                })
+                table.append(
+                    {
+                        "absolute_row_index": row + (page_size * page),
+                        "visible_row_index": row,
+                        "column_index": col,
+                        "title": col_data["title"],
+                        "text": child.Text,
+                        "name": col_data["name"],
+                        "field_id": self.__extract_field_id__(child.Id),
+                        "type": child.Type,
+                    }
+                )
 
             if page < pages - 1:
-                self.get_object(field_id).VerticalScrollbar.Position = (page + 1) * page_size
+                self.get_object(field_id).VerticalScrollbar.Position = (
+                    page + 1
+                ) * page_size
 
         return table
 
