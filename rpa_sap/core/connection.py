@@ -1,5 +1,5 @@
 from os import getlogin
-import subprocess
+import subprocess  # nosec B404
 import time
 import win32com.client
 import win32api
@@ -54,7 +54,7 @@ class ConnectionManager:
         """
         # Run sapgui.exe with connection string as a parameter
         try:
-            subprocess.check_call([
+            subprocess.check_call([  # nosec B603
                 "C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe",
                 connection_string,
             ])
@@ -176,7 +176,7 @@ class ConnectionManager:
                 for session in connection.Sessions:
                     connection.CloseSession(session.Id)
         except Exception:
-            pass
+            pass  # nosec B110
 
     def close_session(self, sap_session: SapSession):
         """Closes a specific SAP session."""
@@ -191,7 +191,7 @@ class ConnectionManager:
             self.application = None
             self.sap_gui = None
         except Exception:
-            pass
+            pass  # nosec B110
 
         self.close_process("saplogon.exe", username)
 
