@@ -1,9 +1,12 @@
 [project]
 name = "rpa-sap"
-version = "1.2.7"
-description = "SAPGUI scripting automation"
+version = "2.0.1"
+description = "A comprehensive Python library for robust SAP GUI automation and RFC integration, designed for RPA workflows."
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    { name = "Grzegorz Zioło" }
+]
 dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
