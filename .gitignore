@@ -32,7 +32,6 @@ __pycache__
 scratch_*.py
 *.log
 *.bak
-rewrite.sh
 
 # Application log articacts
 dev_rfc.log
