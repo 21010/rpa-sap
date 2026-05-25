@@ -23,3 +23,22 @@ __pycache__
 
 # virtual env
 .venv
+.python-version
+
+# Pytest and Mypy
+.pytest_cache/
+.mypy_cache/
+
+# Environment Variables
+.env
+
+# Scratch/Debug files
+scratch_*.py
+*.log
+*.bak
+
+# Application log articacts
+dev_rfc.log
+dev_rfc.trc
+dev_icm.log
+dev_icm.trc
