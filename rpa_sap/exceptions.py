@@ -21,3 +21,7 @@ class SapTransactionError(SapRpaError):
 class SapProcessError(SapRpaError):
     """Raised when there is an error managing the SAP process (e.g. saplogon.exe)."""
     pass
+
+class SapRfcError(SapRpaError):
+    """Raised when there is an error executing a Remote Function Call (RFC) or connecting to SAP.Functions."""
+    pass

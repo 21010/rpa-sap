@@ -79,6 +79,12 @@ class ConnectionManager:
             raise SapConnectionError("Timeout while waiting for SAP session to open.")
 
         sap_session = SapSession(session, connection)
+        sap_session._rfc_credentials = {
+            "connection_string": connection_string,
+            "user_id": user_id,
+            "password": password,
+            "client": client
+        }
         
         active_window = session.findById("wnd[0]")
         active_window.maximize()
