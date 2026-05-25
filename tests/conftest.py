@@ -5,6 +5,11 @@ from rpa_sap import ConnectionManager
 
 load_dotenv()
 
+def pytest_runtest_setup(item):
+    if os.getenv("CI") == "true":
+        pytest.skip("Skipping SAP GUI tests in CI environment because SAP GUI is not installed.")
+
+
 @pytest.fixture(scope="session")
 def secrets():
     # Return a dictionary of secrets mapping to old json format
