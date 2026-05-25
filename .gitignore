@@ -13,7 +13,6 @@
 __pycache__
 
 # GitHub
-/.github/
 
 # credentials for tests
 /tests/credentials.json
