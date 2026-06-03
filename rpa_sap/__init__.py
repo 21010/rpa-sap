@@ -10,7 +10,7 @@ from .exceptions import (
     SapSessionError,
     SapElementNotFoundError,
     SapTransactionError,
-    SapProcessError
+    SapProcessError,
 )
 
 __all__ = [
