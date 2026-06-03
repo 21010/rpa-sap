@@ -1,7 +1,3 @@
-import pytest
-from rpa_sap.exceptions import SapRfcError
-
-
 def test_execute_rfc(sap_session):
     """Test that we can retrieve a generic RFC object."""
     rfc = sap_session.execute_rfc("RFC_READ_TABLE")

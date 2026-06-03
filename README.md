@@ -140,6 +140,20 @@ sq01.execute_query()
 sq01.to_local_file(folder_path="C:\\Exports", file_name="query_results.xls", file_type="xls")
 ```
 
+## Testing
+
+The project uses `pytest` and features a two-tier testing strategy:
+
+1. **Unit Tests (Fast & CI-Friendly):** Located in `tests/unit/`. These tests mock the SAP GUI COM objects and run without requiring a live SAP installation or active connection.
+   ```sh
+   uv run pytest tests/unit
+   ```
+
+2. **Integration Tests (Live SAP Environment):** Located in `tests/integration/`. These tests connect to a live SAP environment and require SAP GUI to be installed, running, and accessible. They are marked with `@pytest.mark.integration`.
+   ```sh
+   uv run pytest -m "integration"
+   ```
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

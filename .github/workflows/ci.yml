@@ -33,8 +33,8 @@ jobs:
           uv run ruff format --check .
         continue-on-error: true
 
-      - name: Type checking (Pyright)
-        run: uv run pyright rpa_sap
+      - name: Type checking (Pyrefly)
+        run: uv run pyrefly check
         continue-on-error: true
 
       - name: Security scanning (Bandit)
@@ -42,8 +42,6 @@ jobs:
         continue-on-error: true
 
       - name: Run unit tests (PyTest)
-        # Note: Pytest requires an active SAP GUI installation to run properly unless mocked.
-        # You may need to mock win32com.client in your tests or handle CI-specific skipping.
-        run: uv run pytest
+        run: uv run pytest tests/unit --cov=rpa_sap
         env:
           CI: "true"

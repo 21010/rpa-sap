@@ -1,8 +1,8 @@
 import datetime
 import time
-import win32com.client
 from ..exceptions import SapElementNotFoundError
 from ..lib.common import StatusBar
+
 
 class ElementInteractor:
     def __init__(self, session):

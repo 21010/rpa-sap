@@ -4,9 +4,7 @@ version = "2.0.1"
 description = "A comprehensive Python library for robust SAP GUI automation and RFC integration, designed for RPA workflows."
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "Grzegorz Zioło" }
-]
+authors = [{ name = "Grzegorz Zioło" }]
 dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
@@ -16,9 +14,9 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "pytest>=8.4.2",
-    "bandit>=1.7.8",
-    "ruff>=0.3.0",
-    "pyright>=1.1.350",
+dev = ["pytest>=8.4.2", "bandit>=1.7.8", "ruff>=0.3.0", "pyrefly>=1.0.0", "pytest-cov>=4.1.0"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests requiring real SAP connection",
 ]
