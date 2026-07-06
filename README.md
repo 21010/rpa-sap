@@ -94,8 +94,8 @@ print(df.head())
 ### 4. Reading a Transparent Table via RFC (Using active session)
 ```python
 # Assuming you have an active session
-# The session object provides a built-in method to read SAP transparent tables via RFC
-results = session.read_table(
+# The session object provides an embedded RFC connection via the `.rfc` property
+results = session.rfc.read_table(
     table_name="T000",
     fields=["MANDT", "MTEXT"],
     options=["SPRAS = 'E'"]
