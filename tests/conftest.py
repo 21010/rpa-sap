@@ -1,7 +1,7 @@
 import os
 import pytest
 from dotenv import load_dotenv
-from rpa_sap import ConnectionManager
+from rpa_sap import ConnectionManager, RfcConnection
 
 load_dotenv()
 
@@ -54,5 +54,20 @@ def sap_session(connection_manager, secrets):
     yield session
     try:
         connection_manager.close_session(session)
+    except Exception:
+        pass
+
+@pytest.fixture
+def rfc_session(secrets):
+    rfc = RfcConnection(
+        secrets["connection_string"],
+        secrets["user_id"],
+        secrets["password"],
+        secrets["client"],
+        secrets["language"],
+    )
+    yield rfc
+    try:
+        rfc.close()
     except Exception:
         pass

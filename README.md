@@ -91,7 +91,7 @@ df = grid.to_DataFrame("wnd[0]/usr/cntlGRID1/shellcont/shell")
 print(df.head())
 ```
 
-### 4. Reading a Transparent Table via RFC
+### 4. Reading a Transparent Table via RFC (Using active session)
 ```python
 # Assuming you have an active session
 # The session object provides a built-in method to read SAP transparent tables via RFC
@@ -101,6 +101,29 @@ results = session.read_table(
     options=["SPRAS = 'E'"]
 )
 print(results)
+```
+
+### 5. Fully Headless RFC Connection
+For scenarios where you do not need an active SAP GUI session and want to interact purely via RFC, you can use the `RfcConnection` class directly.
+
+```python
+from rpa_sap import RfcConnection
+
+# Initialize a headless RFC connection
+rfc = RfcConnection(
+    connection_string="My SAP System",
+    user_id="user_id",
+    password="password",
+    client="100",
+    language="EN"
+)
+
+# Read a transparent table
+results = rfc.read_table("T000")
+print(results)
+
+# Always close the connection when done
+rfc.close()
 ```
 
 ### 5. Working with Table Controls
