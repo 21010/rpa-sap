@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from rpa_sap.core.rfc import RfcConnection
 
@@ -45,7 +44,7 @@ def test_rfc_connection_saplogon_ini_string(mock_dispatch, mock_coinit):
     mock_connection = mock_functions.Connection
     mock_connection.Logon.return_value = True
 
-    rfc = RfcConnection(
+    RfcConnection(
         connection_string="022 BPE Test",
         user_id="test_user",
         password="test_password",
