@@ -1,5 +1,5 @@
 import pytest
-from rpa_sap import GridView
+from rpa_sap import GridView, GridViewExtractor
 
 
 @pytest.fixture
@@ -85,7 +85,8 @@ def test_get_cell_value(grid_session):
 
 def test_to_array(grid_session):
     grid = GridView(grid_session)
-    arr = grid.to_array("wnd[1]/usr/cntlGRID1/shellcont/shell")
+    extractor = GridViewExtractor(grid)
+    arr = extractor.to_array("wnd[1]/usr/cntlGRID1/shellcont/shell")
     print(f"Array snippet: {arr[:2]}")
     assert isinstance(arr, list)
     assert len(arr) > 0
@@ -94,6 +95,7 @@ def test_to_array(grid_session):
 
 def test_to_dataframe(grid_session):
     grid = GridView(grid_session)
-    df = grid.to_DataFrame("wnd[1]/usr/cntlGRID1/shellcont/shell")
+    extractor = GridViewExtractor(grid)
+    df = extractor.to_dataframe("wnd[1]/usr/cntlGRID1/shellcont/shell")
     print("DataFrame snippet:\n", df.head().to_string())
     assert not df.empty

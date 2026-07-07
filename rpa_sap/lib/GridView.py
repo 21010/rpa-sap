@@ -1,8 +1,6 @@
-from typing import Optional, List, Dict
+from typing import Optional, List
 from collections import namedtuple
 import win32com.client
-
-from pandas import DataFrame
 
 from ..core.session import SapSession
 
@@ -494,80 +492,6 @@ class GridView:
             column_name = self.__get_column_name(grid_view, column_index)
             grid_view.SetCurrentCell(row_index, column_name)
 
-    def to_array(self, grid_view_id: str) -> List[List]:
-        """
-        Extracts all data from the GridView and returns it as a list of lists.
-        The first sub-list contains the column headers, and subsequent sub-lists
-        represent the rows of data.
-
-        Args:
-            grid_view_id (str): The ID of the GridView control.
-
-        Returns:
-            list: A list of lists, where the first inner list is headers and the rest are rows.
-        """
-
-        grid_view = self.get_object(grid_view_id)
-        return [self.__get_headers(grid_view), *self.__get_body(grid_view)]
-
-    def to_dict(self, grid_view_id: str) -> Dict:
-        """
-        Extracts all data from the GridView and returns it as a dictionary.
-        The dictionary contains two keys: "columns" for the column headers
-        and "data" for the rows of data.
-
-        Args:
-            grid_view_id (str): The ID of the GridView control.
-
-        Returns:
-            dict: A dictionary with "columns" (list of headers) and "data" (list of lists for rows).
-        """
-
-        grid_view = self.get_object(grid_view_id)
-        return {
-            "columns": self.__get_headers(grid_view),
-            "data": self.__get_body(grid_view),
-        }
-
-    def to_DataFrame(self, grid_view_id: str) -> DataFrame:
-        """
-        Extracts all data from the GridView and returns it as a pandas DataFrame.
-        The DataFrame columns are set to the GridView headers.
-
-        Args:
-            grid_view_id (str): The ID of the GridView control.
-
-        Returns:
-            DataFrame: A pandas DataFrame containing the GridView data.
-        """
-        grid_view = self.get_object(grid_view_id)
-        return DataFrame(
-            data=self.__get_body(grid_view), columns=self.__get_headers(grid_view)
-        )
-
-    def to_csv(self, grid_view_id: str, path_or_buf: str):
-        """
-        Exports the GridView data to a CSV file.
-
-        Args:
-            grid_view_id (str): The ID of the GridView control.
-            path_or_buf (str): The file path or buffer to write the CSV data to.
-        """
-
-        grid_view = self.get_object(grid_view_id)
-        self.to_DataFrame(grid_view).to_csv(path_or_buf=path_or_buf, index=False)
-
-    def to_xlsx(self, grid_view_id: str, file_path: str):
-        """
-        Exports the GridView data to an XLSX file.
-
-        Args:
-            grid_view_id (str): The ID of the GridView control.
-            file_path (str): The full path to the output XLSX file.
-        """
-        grid_view = self.get_object(grid_view_id)
-        self.to_DataFrame(grid_view).to_excel(file_path, index=False)
-
     # Magic methods - Grid View
 
     def __get_column_index(
@@ -635,42 +559,3 @@ class GridView:
                 ):
                     results.append(Cell_Address(row_index, column_index))
         return results
-
-    def __get_headers(self, grid_view: win32com.client.dynamic.CDispatch) -> List:
-        """
-        Extracts the column headers from the GridView object.
-
-        Args:
-            grid_view (win32com.client.dynamic.CDispatch): GridView object.
-
-        Returns:
-            List: A list of column header names.
-        """
-
-        return [
-            grid_view.GetColumnTitles(column_name)[0]
-            for column_name in grid_view.ColumnOrder
-        ]
-
-    def __get_body(self, grid_view: win32com.client.dynamic.CDispatch) -> List:
-        """
-        Extracts the data rows from the GridView object.
-
-        Args:
-            grid_view (win32com.client.dynamic.CDispatch): GridView object.
-
-        Returns:
-            List: A list of lists, where each inner list represents a row of data.
-        """
-
-        body = []
-        for row_index in range(0, grid_view.RowCount):
-            row = []
-            for column_index in range(0, grid_view.ColumnCount):
-                row.append(
-                    grid_view.GetCellValue(
-                        row_index, self.__get_column_name(grid_view, column_index)
-                    )
-                )
-            body.append(row)
-        return body

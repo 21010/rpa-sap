@@ -24,7 +24,7 @@ class _ProcessManager:
                 name = proc.info.get("name")
                 if name and name.lower() in ("saplogon.exe", "sapgui.exe"):
                     proc_user = proc.info.get("username")
-                    if proc_user and username in proc_user.upper():
+                    if proc_user and username == proc_user.split("\\")[-1].upper():
                         return True
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
@@ -38,7 +38,7 @@ class _ProcessManager:
                 name = proc.info.get("name")
                 if name and name.lower() == process_name.lower():
                     proc_user = proc.info.get("username")
-                    if proc_user and username in proc_user.upper():
+                    if proc_user and username == proc_user.split("\\")[-1].upper():
                         proc.kill()
                         try:
                             proc.wait(timeout=3)
@@ -140,13 +140,25 @@ class ConnectionManager:
 
         sap_session = SapSession(session, connection)
 
-        # NOTE: Keeping password in memory can be a security issue, but kept for compatibility.
-        sap_session._rfc_credentials = {
-            "connection_string": connection_string,
-            "user_id": user_id,
-            "password": password,
-            "client": client,
-        }
+        # Initialize RFC connection eagerly to avoid storing plaintext passwords in memory
+        if password:
+            from .rfc import RfcConnection
+
+            try:
+                sap_session._rfc_client = RfcConnection(
+                    connection_string=connection_string,
+                    user_id=user_id,
+                    password=password,
+                    client=client,
+                    language=language,
+                )
+            except Exception as e:
+                import warnings
+
+                warnings.warn(
+                    f"Failed to eagerly establish headless RFC connection: {e}",
+                    UserWarning,
+                )
 
         self._perform_login(sap_session, user_id, password, client, language)
         return sap_session
@@ -314,8 +326,7 @@ class ConnectionManager:
         self.application = None
         self.sap_gui = None
         _ProcessManager.close_process("saplogon.exe", username)
-        _ProcessManager.close_process("sapgui.exe", username)
-        time.sleep(2)  # Give Windows time to clean up ROT entry for dead processes
+        time.sleep(2)
 
     def close_process(self, process_name: str, username: str = None):
         """
