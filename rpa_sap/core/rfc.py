@@ -3,12 +3,20 @@ import win32com.client
 import pythoncom
 from ..exceptions import SapSessionError, SapRfcError
 
+
 class RfcConnection:
     """
     Represents a headless SAP RFC connection using SAP.Functions.
     """
 
-    def __init__(self, connection_string: str, user_id: str, password: str, client: str = "900", language: str = "EN"):
+    def __init__(
+        self,
+        connection_string: str,
+        user_id: str,
+        password: str,
+        client: str = "900",
+        language: str = "EN",
+    ):
         self.connection_string = connection_string
         self.user_id = user_id
         self.password = password
@@ -44,7 +52,7 @@ class RfcConnection:
 
             if not rfc_conn.Logon(0, True):  # Silent=True
                 raise Exception("Logon method returned False.")
-                
+
             self.connection = rfc_conn
 
         except Exception as e:
@@ -190,31 +198,6 @@ class RfcConnection:
 
         for table_name in extract_tables:
             tbl = rfc.Tables(table_name)
-            table_data = []
-            if tbl.RowCount > 0:
-                # We need to get columns dynamically. SAP.Functions tables don't easily
-                # expose column names directly via standard iteration in all environments.
-                # Usually tbl.Columns exist. Let's try to extract if Rows exist.
-                for i in range(tbl.RowCount):
-                    row = tbl.Rows(i)
-                    # For SAP COM, tbl.Data gives a tuple of strings for RFC_READ_TABLE, 
-                    # but for BAPI tables, Rows is the standard way.
-                    # Actually, if we don't have column names, we can extract via row.Value(index) 
-                    # but it's complex. Let's assume the user knows the structure, or we can use 
-                    # a specific helper. Wait, SAP.Functions tbl.Rows(i) allows accessing fields 
-                    # but doesn't easily list them. Let's return raw rows or attempt to use 
-                    # dict if we can get columns. 
-                    # For simplicity in this implementation, we will just return the raw COM row objects
-                    # or require users to know what they are looking for.
-                    # Wait, if we can't extract cleanly, let's just return the COM table object
-                    # or a wrapper. Let's extract what we can. Let's try tbl.Data? 
-                    # No, let's keep it simple and just return the table object itself in the dict for now,
-                    # or extract it if we have a robust way. 
-                    pass
-                
-                # Let's just return the table object so users can iterate it.
-                result["TABLES"][table_name] = tbl
-            else:
-                result["TABLES"][table_name] = tbl
+            result["TABLES"][table_name] = tbl
 
         return result

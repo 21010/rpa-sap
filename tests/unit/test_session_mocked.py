@@ -19,7 +19,7 @@ def test_rfc_property(sap_session):
         "client": "900",
         "user_id": "test_user",
         "password": "test_password",
-        "language": "EN"
+        "language": "EN",
     }
 
     with patch("rpa_sap.core.session.RfcConnection") as mock_rfc_class:

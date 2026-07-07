@@ -57,6 +57,7 @@ def sap_session(connection_manager, secrets):
     except Exception:
         pass
 
+
 @pytest.fixture
 def rfc_session(secrets):
     rfc = RfcConnection(

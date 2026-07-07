@@ -3,6 +3,7 @@ from ..exceptions import SapSessionError, SapTransactionError
 from .ui_automation import ElementInteractor
 from .rfc import RfcConnection
 
+
 class SapSession:
     """
     Represents an active SAP GUI session and acts as the main context

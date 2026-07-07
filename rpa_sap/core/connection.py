@@ -2,12 +2,53 @@ from os import getlogin
 import subprocess  # nosec B404
 import time
 import win32com.client
-import win32api
-import win32con
 import warnings
-import wmi
+import psutil
 from ..exceptions import SapConnectionError, SapProcessError
 from .session import SapSession
+
+
+class _ProcessManager:
+    """Helper class to manage Windows OS processes using psutil."""
+
+    @staticmethod
+    def is_sap_running(username: str = None) -> bool:
+        username = (username or getlogin()).upper()
+        try:
+            for proc in psutil.process_iter(["name", "username"]):
+                if not proc.is_running() or proc.status() in (
+                    psutil.STATUS_ZOMBIE,
+                    psutil.STATUS_DEAD,
+                ):
+                    continue
+                name = proc.info.get("name")
+                if name and name.lower() in ("saplogon.exe", "sapgui.exe"):
+                    proc_user = proc.info.get("username")
+                    if proc_user and username in proc_user.upper():
+                        return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+        return False
+
+    @staticmethod
+    def close_process(process_name: str, username: str = None):
+        username = (username or getlogin()).upper()
+        try:
+            for proc in psutil.process_iter(["name", "username"]):
+                name = proc.info.get("name")
+                if name and name.lower() == process_name.lower():
+                    proc_user = proc.info.get("username")
+                    if proc_user and username in proc_user.upper():
+                        proc.kill()
+                        try:
+                            proc.wait(timeout=3)
+                        except psutil.TimeoutExpired:
+                            pass
+        except Exception as e:
+            warnings.warn(
+                f"Process {process_name} not found or could not be closed. {e}",
+                UserWarning,
+            )
 
 
 class ConnectionManager:
@@ -39,52 +80,67 @@ class ConnectionManager:
         self,
         connection_string: str,
         user_id: str,
-        password: str,
+        password: str | None = None,
         client: str = "900",
         language: str = "EN",
-        timeout: int = 10,
+        timeout: int = 15,
         step: int = 1,
     ) -> SapSession:
         """
-        Opens and logs in to a new SAP session.
-
-        Args:
-            connection_string (str): Connection string for SAP system
-            user_id (str): SAP user id
-            password (str): SAP password
-            client (str, optional): SAP client. Defaults to '900'.
-            language (str, optional): Language. Defaults to "EN".
-            timeout (int, optional): Defines how many seconds wait until SAPGUI is opened. Default to 10.
+        Opens and logs in to a new SAP session. Support for both SSO (password=None) and standard login.
         """
-        # Run sapgui.exe with connection string as a parameter
-        try:
-            subprocess.check_call(
-                [  # nosec B603
-                    "C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe",
-                    connection_string,
-                ]
-            )
-            time.sleep(step)
-        except (subprocess.CalledProcessError, subprocess.SubprocessError) as ex:
-            self.close_sap_logon()
-            raise SapProcessError("Failed to start saplogon.exe") from ex
+        sap_running = _ProcessManager.is_sap_running()
+        sapgui_path = "C:/Program Files (x86)/SAP/FrontEnd/SAPgui/SAPgui.exe"
+
+        if not sap_running:
+            try:
+                subprocess.Popen([sapgui_path, connection_string])
+            except Exception as ex:
+                self.close_sap_logon()
+                raise SapProcessError(f"Failed to start {sapgui_path}") from ex
+            time.sleep(4)
 
         end_time = time.time() + timeout
         connection = None
         session = None
+
         while time.time() < end_time:
             try:
                 self._initialize_engine()
-                connection = self.connections[self.connections.Count - 1]
-                session = connection.Sessions[connection.Sessions.Count - 1]
-                break
+                if self.application:
+                    if not sap_running:
+                        # Find the connection that SAPgui.exe automatically opened
+                        if self.connections.Count > 0:
+                            connection = self.connections[self.connections.Count - 1]
+                            if connection.Children.Count > 0:
+                                session = connection.Children(0)
+                                break
+                    else:
+                        # Actively open a new connection on the running engine
+                        connection = self.application.OpenConnectionByConnectionString(
+                            connection_string, True
+                        )
+                        session = connection.Children(0)
+                        break
             except Exception:
-                time.sleep(step)
+                # If we were expecting a running SAP but it's stale/crashing:
+                if sap_running:
+                    self.close_sap_logon()
+                    time.sleep(2)
+                    sap_running = False
+                    try:
+                        subprocess.Popen([sapgui_path, connection_string])
+                    except Exception as ex:
+                        raise SapProcessError(f"Failed to start {sapgui_path}") from ex
+                    time.sleep(4)
 
-        if session is None:
+            time.sleep(step)
+        else:
             raise SapConnectionError("Timeout while waiting for SAP session to open.")
 
         sap_session = SapSession(session, connection)
+
+        # NOTE: Keeping password in memory can be a security issue, but kept for compatibility.
         sap_session._rfc_credentials = {
             "connection_string": connection_string,
             "user_id": user_id,
@@ -92,14 +148,45 @@ class ConnectionManager:
             "client": client,
         }
 
-        active_window = session.findById("wnd[0]")
-        active_window.maximize()
+        self._perform_login(sap_session, user_id, password, client, language)
+        return sap_session
 
-        session.findById("wnd[0]/usr/txtRSYST-BNAME").Text = user_id
-        session.findById("wnd[0]/usr/pwdRSYST-BCODE").Text = password
-        session.findById("wnd[0]/usr/txtRSYST-MANDT").Text = client
-        session.findById("wnd[0]/usr/txtRSYST-LANGU").Text = language
-        active_window.SendVKey(0)
+    def _perform_login(
+        self,
+        sap_session: SapSession,
+        user_id: str,
+        password: str | None,
+        client: str,
+        language: str,
+    ):
+        """Automates the SAP GUI UI login process."""
+        session = sap_session.com_session
+
+        try:
+            active_window = session.findById("wnd[0]")
+            active_window.maximize()
+        except Exception:
+            pass
+
+        # Wait up to 5 seconds for the login screen to render. If it doesn't, assume SSO bypassed it.
+        user_field = None
+        for _ in range(5):
+            try:
+                user_field = session.findById("wnd[0]/usr/txtRSYST-BNAME")
+                break
+            except Exception:
+                time.sleep(1)
+
+        if user_field:
+            try:
+                user_field.Text = user_id
+                if password:
+                    session.findById("wnd[0]/usr/pwdRSYST-BCODE").Text = password
+                session.findById("wnd[0]/usr/txtRSYST-MANDT").Text = client
+                session.findById("wnd[0]/usr/txtRSYST-LANGU").Text = language
+                active_window.SendVKey(0)
+            except Exception as e:
+                warnings.warn(f"Error during login automation: {e}", UserWarning)
 
         # Check if "License Information for Multiple Logon" pops up
         if sap_session.interactor.check_if_object_exists("wnd[1]"):
@@ -112,8 +199,6 @@ class ConnectionManager:
         status = sap_session.interactor.get_status_bar_message()
         if status.type == "E":
             raise SapConnectionError(f"{status.type} : {status.text}")
-
-        return sap_session
 
     def activate_session(
         self,
@@ -141,17 +226,25 @@ class ConnectionManager:
                 active_session = active_connection.Sessions[session_index]
             elif connection_index is None and session_index is None:
                 if user_id and sid and application_server and client:
+
+                    def _match_session(s):
+                        i = s.Info
+                        return (
+                            i.SystemName == sid.upper()
+                            and i.Client == client
+                            and i.User == user_id.upper()
+                            and i.ApplicationServer.upper()
+                            == application_server.upper()
+                        )
+
                     for connection in self.connections:
                         for session in connection.Sessions:
-                            if (
-                                session.Info.SystemName == sid.upper()
-                                and session.Info.Client == client
-                                and session.Info.User == user_id.upper()
-                                and session.Info.ApplicationServer.upper()
-                                == application_server.upper()
-                            ):
+                            if _match_session(session):
                                 active_connection = connection
                                 active_session = session
+                                break
+                        if active_session:
+                            break
                 else:
                     active_connection = self.connections[self.connections.Count - 1]
                     active_session = active_connection.Sessions[
@@ -195,45 +288,37 @@ class ConnectionManager:
             self._initialize_engine()
             for connection in self.connections:
                 for session in connection.Sessions:
-                    connection.CloseSession(session.Id)
+                    try:
+                        connection.CloseSession(session.Id)
+                    except Exception as e:
+                        warnings.warn(f"Failed to close session: {e}", UserWarning)
         except Exception:
             pass  # nosec B110
 
     def close_session(self, sap_session: SapSession):
         """Closes a specific SAP session."""
         if sap_session.com_connection:
-            sap_session.com_connection.CloseSession(sap_session.com_session.Id)
+            try:
+                sap_session.com_connection.CloseSession(sap_session.com_session.Id)
+            except Exception as e:
+                warnings.warn(f"Failed to close session: {e}", UserWarning)
+            # Remove COM references to avoid GC issues / RPC crashes
+            sap_session.com_session = None
+            sap_session.com_connection = None
 
     def close_sap_logon(self, username: str = None):
         """
         Closes Sap Logon application opened by the specific user.
         """
-        try:
-            self.application = None
-            self.sap_gui = None
-        except Exception:
-            pass  # nosec B110
-
-        self.close_process("saplogon.exe", username)
+        # Clear engine COM references before terminating process
+        self.application = None
+        self.sap_gui = None
+        _ProcessManager.close_process("saplogon.exe", username)
+        _ProcessManager.close_process("sapgui.exe", username)
+        time.sleep(2)  # Give Windows time to clean up ROT entry for dead processes
 
     def close_process(self, process_name: str, username: str = None):
         """
         Closes Windows process opened by the specific user.
         """
-        try:
-            c = wmi.WMI()
-            username = getlogin() if username is None else username
-
-            for process in c.Win32_Process(name=process_name):
-                process_owner = process.GetOwner()
-                if process_owner and (username.upper() in str(process_owner).upper()):
-                    handle = win32api.OpenProcess(
-                        win32con.PROCESS_TERMINATE, 0, process.ProcessId
-                    )
-                    win32api.TerminateProcess(handle, -1)
-                    win32api.CloseHandle(handle)
-        except Exception as e:
-            warnings.warn(
-                f"Process {process_name} not found or could not be closed. {e}",
-                UserWarning,
-            )
+        _ProcessManager.close_process(process_name, username)
