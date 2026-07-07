@@ -1,7 +1,5 @@
 from collections import namedtuple
 from typing import overload, Optional, Union, Dict
-from pandas import DataFrame
-import numpy as np
 import re
 import math
 import warnings
@@ -104,39 +102,24 @@ class GuiTableControl:
         if target_col_index == -1:
             raise Exception(f"Column not found: {column_name or column_title}")
 
-        # Get number of total rows and visible rows
-        page_size = self.get_page_size(field_id)
         # initiate a list for elements of the table
         cells = []
-        # calculate number of pages
-        pages = self.count_pages(field_id)
-        # iterate pages and read all cells
-        for page in range(pages):
-            # scroll to the first page
-            if page == 0:
-                self.get_object(field_id).VerticalScrollbar.Position = 0
-            # iterate all visible cells
-            for child in self.get_object(field_id).Children:
-                column_index, row_index = self.__extract_coordinates__(child.Id)
+        # extract table data
+        table_data = self.__extract_table__(field_id)
 
-                if column_index == target_col_index:
-                    cells.append(
-                        Cell(
-                            id=self.__extract_field_id__(child.Id),
-                            row_index=row_index + (page_size * page),
-                            column_index=column_index,
-                            column_name=column_name,
-                            column_title=column_title,
-                            type=child.Type,
-                            text=child.Text,
-                        )
+        for item in table_data:
+            if item["column_index"] == target_col_index:
+                cells.append(
+                    Cell(
+                        id=item["field_id"],
+                        row_index=item["absolute_row_index"],
+                        column_index=item["column_index"],
+                        column_name=column_name,
+                        column_title=column_title,
+                        type=item["type"],
+                        text=item["text"],
                     )
-
-            # scroll to the next page
-            if page < pages - 1:
-                self.get_object(field_id).VerticalScrollbar.Position = (
-                    page + 1
-                ) * page_size
+                )
 
         # return resuls
         return Column(name=column_name, title=column_title, cells=cells)
@@ -271,38 +254,21 @@ class GuiTableControl:
 
         # SCENARIO 1: SEARCH BY VALUE
         if isinstance(value, str):
-            pages = self.count_pages(field_id)
-            page_size = self.get_page_size(field_id)
             cells = []
-
-            for page in range(pages):
-                if page == 0:
-                    self.get_object(field_id).VerticalScrollbar.Position = 0
-
-                for child in self.get_object(field_id).Children:
-                    if child.Text.lower() == str(value).lower():
-                        column_index, row_index = self.__extract_coordinates__(child.Id)
-                        col_data = columns.get(
-                            column_index, {"name": child.Name, "title": ""}
+            table_data = self.__extract_table__(field_id)
+            for item in table_data:
+                if str(item["text"]).lower() == str(value).lower():
+                    cells.append(
+                        Cell(
+                            id=item["field_id"],
+                            row_index=item["absolute_row_index"],
+                            column_index=item["column_index"],
+                            column_name=item["name"],
+                            column_title=item["title"],
+                            text=item["text"],
+                            type=item["type"],
                         )
-
-                        cells.append(
-                            Cell(
-                                id=self.__extract_field_id__(child.Id),
-                                row_index=row_index + (page_size * page),
-                                column_index=column_index,
-                                column_name=col_data["name"],
-                                column_title=col_data["title"],
-                                text=child.Text,
-                                type=child.Type,
-                            )
-                        )
-
-                if page < pages - 1:
-                    self.get_object(field_id).VerticalScrollbar.Position = (
-                        page + 1
-                    ) * page_size
-
+                    )
             return cells
 
         # SCENARIO 2: SEARCH BY ROW INDEX AND COLUMN
@@ -528,58 +494,6 @@ class GuiTableControl:
 
         page_size = self.get_page_size(field_id)
         self.get_object(field_id).VerticalScrollbar.Position = page_size * (page - 1)
-
-    # data extraction
-    def to_DataFrame(self, field_id: str, entire_table: bool = True) -> DataFrame:
-        """
-        Converts the SAP Table Control data into a pandas DataFrame.
-        Handles duplicate column names/titles by mapping data based on column index.
-        """
-        # 1. Get headers indexed by position to ensure order and uniqueness
-        columns_header = self.get_table_header(field_id)
-
-        # 2. Sort indices to ensure we build the list in the correct visual order (0, 1, 2...)
-        sorted_indices = sorted(columns_header.keys())
-
-        # 3. Extract column titles for the DataFrame header
-        # Note: Duplicate titles are allowed in this list.
-        columns = [columns_header[i]["title"] for i in sorted_indices]
-
-        # 4. Build the data rows
-        data = []
-        for row in self.get_rows(field_id, entire_table):
-            # Create a row filled with None to handle potential sparse data or gaps
-            row_data = [None] * len(columns)
-
-            for cell in row.cells:
-                # Map cell text to its specific column index
-                # This prevents overwriting data if two columns share a name
-                if cell.column_index < len(row_data):
-                    row_data[cell.column_index] = cell.text
-
-            data.append(row_data)
-
-        # 5. Create DataFrame
-        return DataFrame(data, columns=columns)
-
-    def to_array(self, field_id: str) -> np.ndarray:
-        table = self.__extract_table__(field_id)
-        # Using indexes instead of names ensures uniqueness
-        unique_col_indexes = sorted(list(set([x["column_index"] for x in table])))
-        rows = sorted(list(set([x["absolute_row_index"] for x in table])))
-
-        # Map absolute row index to array row index (0, 1, 2...)
-        row_map = {idx: i for i, idx in enumerate(rows)}
-        col_map = {idx: i for i, idx in enumerate(unique_col_indexes)}
-
-        data = np.empty((len(rows), len(unique_col_indexes)), dtype=object)
-
-        for cell in table:
-            r = row_map[cell["absolute_row_index"]]
-            c = col_map[cell["column_index"]]
-            data[r, c] = cell["text"]
-
-        return data
 
     def __extract_visible_rows__(self, field_id: str) -> list:
         columns = self.get_table_header(field_id)

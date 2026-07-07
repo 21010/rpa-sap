@@ -68,6 +68,12 @@ class RfcConnection:
             except Exception:
                 pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     def execute_rfc(self, function_name: str):
         """
         Retrieves an RFC function object to be executed.

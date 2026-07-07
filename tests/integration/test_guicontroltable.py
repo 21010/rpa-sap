@@ -1,6 +1,7 @@
 import pytest
 from time import sleep
 from rpa_sap import GuiTableControl
+from rpa_sap.lib import GuiTableControlExtractor
 
 
 @pytest.fixture
@@ -214,11 +215,12 @@ def test_scroll_to_nth_page(table_session):
 
 def test_to_dataframe(table_session):
     table = GuiTableControl(table_session)
-    df = table.to_DataFrame("wnd[0]/usr/tblSAPMM06ETC_0220")
+    extractor = GuiTableControlExtractor(table)
+    df = extractor.to_dataframe("wnd[0]/usr/tblSAPMM06ETC_0220")
     print("DataFrame snippet:\n", df.head().to_string())
     df.to_excel("tests/table.xlsx")
 
-    df_visible = table.to_DataFrame("wnd[0]/usr/tblSAPMM06ETC_0220", False)
+    df_visible = extractor.to_dataframe("wnd[0]/usr/tblSAPMM06ETC_0220", False)
     print("Visible DataFrame snippet:\n", df_visible.head().to_string())
 
     assert not df.empty
@@ -226,6 +228,7 @@ def test_to_dataframe(table_session):
 
 def test_to_array(table_session):
     table = GuiTableControl(table_session)
-    array = table.to_array("wnd[0]/usr/tblSAPMM06ETC_0220")
+    extractor = GuiTableControlExtractor(table)
+    array = extractor.to_array("wnd[0]/usr/tblSAPMM06ETC_0220")
     print(f"Array shape: {array.shape if hasattr(array, 'shape') else len(array)}")
     assert array is not None

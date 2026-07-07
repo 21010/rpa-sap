@@ -1,7 +1,7 @@
 import win32com.client
+from contextlib import contextmanager
 from ..exceptions import SapSessionError, SapTransactionError
 from .ui_automation import ElementInteractor
-from .rfc import RfcConnection
 
 
 class SapSession:
@@ -58,6 +58,18 @@ class SapSession:
         """Stops SAP transaction."""
         self.com_session.EndTransaction()
 
+    @contextmanager
+    def transaction(self, transaction_code: str):
+        """
+        Context manager for running SAP transactions safely.
+        Ensures that the transaction is stopped even if an error occurs.
+        """
+        self.run_transaction(transaction_code)
+        try:
+            yield
+        finally:
+            self.stop_transaction()
+
     def set_active_window(self, index: int):
         """Sets active window for active SAP session."""
         return self.com_session.findById(f"wnd[{index}]")
@@ -69,9 +81,7 @@ class SapSession:
         Returns the Headless RfcConnection object.
         """
         if not hasattr(self, "_rfc_client"):
-            if not hasattr(self, "_rfc_credentials"):
-                raise SapSessionError(
-                    "RFC connection is not established and no credentials were provided."
-                )
-            self._rfc_client = RfcConnection(**self._rfc_credentials)
+            raise SapSessionError(
+                "RFC connection is not established. Password may not have been provided during session opening."
+            )
         return self._rfc_client

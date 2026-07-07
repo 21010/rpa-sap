@@ -77,17 +77,24 @@ session.interactor.set_checkbox_state("wnd[0]/usr/chk[1,1]", True)
 # FindElemendById is also available via session object.
 session.findById("wnd[0]/tbar[0]/okcd").text = "MM03"
 session.findById("wnd[0]").sendVKey(0)
+
+# You can also use the transaction context manager to ensure safe cleanup
+with session.transaction("ME32L"):
+    session.interactor.set_text("wnd[0]/usr/ctxtRM06E-EBELN", "4500000001")
+    session.interactor.press_enter()
 ```
 
 ### 3. Extracting Data from GridView
 ```python
 from rpa_sap.lib.GridView import GridView
+from rpa_sap.lib.data_extractors import GridViewExtractor
 
 # Initialize the GridView helper with the active session
 grid = GridView(session)
+extractor = GridViewExtractor(grid)
 
 # Extract data directly to a Pandas DataFrame by providing the element ID
-df = grid.to_DataFrame("wnd[0]/usr/cntlGRID1/shellcont/shell")
+df = extractor.to_dataframe("wnd[0]/usr/cntlGRID1/shellcont/shell")
 print(df.head())
 ```
 
@@ -109,32 +116,57 @@ For scenarios where you do not need an active SAP GUI session and want to intera
 ```python
 from rpa_sap import RfcConnection
 
-# Initialize a headless RFC connection
-rfc = RfcConnection(
+# Initialize a headless RFC connection using a context manager
+with RfcConnection(
     connection_string="My SAP System",
     user_id="user_id",
     password="password",
     client="100",
     language="EN"
-)
-
-# Read a transparent table
-results = rfc.read_table("T000")
-print(results)
-
-# Always close the connection when done
-rfc.close()
+) as rfc:
+    # Read a transparent table
+    results = rfc.read_table("T000")
+    print(results)
+    # The connection is automatically closed when the block exits
 ```
 
-### 5. Working with Table Controls
+### 6. Executing a BAPI via RFC
+You can execute BAPI functions cleanly and extract exactly the parameters or tables you need.
+
+```python
+from rpa_sap import RfcConnection
+
+with RfcConnection(
+    connection_string="My SAP System",
+    user_id="user_id",
+    password="password"
+) as rfc:
+    results = rfc.call_bapi(
+        bapi_name="BAPI_USER_GET_DETAIL",
+        import_params={"USERNAME": "USERNAME"},
+        extract_imports=["ADDRESS"],
+        extract_tables=["ACTIVITYGROUPS"]
+    )
+
+    # Access the returned structures and tables
+    address_data = results.get("ADDRESS")
+    roles = results.get("ACTIVITYGROUPS")
+
+    print(f"User Full Name: {address_data.get('FULLNAME')}")
+    print(f"Number of roles: {len(roles)}")
+```
+
+### 7. Working with Table Controls
 ```python
 from rpa_sap.lib.GuiTableControl import GuiTableControl
+from rpa_sap.lib.data_extractors import GuiTableControlExtractor
 
 # Initialize the TableControl helper
 table = GuiTableControl(session)
+extractor = GuiTableControlExtractor(table)
 
 # Extract the entire Table Control to a Pandas DataFrame
-df = table.to_DataFrame("wnd[0]/usr/tblSAPMV13ATCTRL_FAST_ENTRY")
+df = extractor.to_dataframe("wnd[0]/usr/tblSAPMV13ATCTRL_FAST_ENTRY")
 print(df.head())
 
 # Set a specific cell value
@@ -146,7 +178,7 @@ table.set_cell_value(
 )
 ```
 
-### 6. Automating SAP Queries (SQ01)
+### 8. Automating SAP Queries (SQ01)
 ```python
 from rpa_sap.lib.SQ01 import SQ01
 
