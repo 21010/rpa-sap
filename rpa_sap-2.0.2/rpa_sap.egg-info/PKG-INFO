@@ -1,3 +1,20 @@
+Metadata-Version: 2.4
+Name: rpa-sap
+Version: 2.0.2
+Summary: A comprehensive Python library for robust SAP GUI automation and RFC integration, designed for RPA workflows.
+Author: Grzegorz Zioło
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: openpyxl>=3.1.5
+Requires-Dist: pandas>=2.3.3
+Requires-Dist: psutil>=7.2.2
+Requires-Dist: python-dotenv>=1.2.2
+Requires-Dist: pywin32>=311
+Requires-Dist: requests>=2.31.0
+Requires-Dist: wmi>=1.5.1
+Dynamic: license-file
+
 # SAP GUI & RFC Automation
 [![CI](https://github.com/21010/rpa-sap/actions/workflows/ci.yml/badge.svg)](https://github.com/21010/rpa-sap/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
