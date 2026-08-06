@@ -49,15 +49,16 @@ class GuiTableControl:
 
     # get column
     @overload
-    def get_column(self, field_id: str, column_index: int) -> Column: ...
+    def get_column(self, field_id: str, *, column_index: int) -> Column: ...
     @overload
-    def get_column(self, field_id: str, column_name: str) -> Column: ...
+    def get_column(self, field_id: str, *, column_name: str) -> Column: ...
     @overload
-    def get_column(self, field_id: str, column_title: str) -> Column: ...
+    def get_column(self, field_id: str, *, column_title: str) -> Column: ...
 
     def get_column(
         self,
         field_id: str,
+        *,
         column_index: Optional[int] = None,
         column_name: Optional[str] = None,
         column_title: Optional[str] = None,
@@ -217,18 +218,19 @@ class GuiTableControl:
     # get cell
     @overload
     def get_cell(
-        self, field_id: str, absolute_row_index: int, column_name: str
+        self, field_id: str, *, absolute_row_index: int, column_name: str
     ) -> Cell: ...
     @overload
     def get_cell(
-        self, field_id: str, absolute_row_index: int, column_title: str
+        self, field_id: str, *, absolute_row_index: int, column_title: str
     ) -> Cell: ...
     @overload
-    def get_cell(self, field_id: str, value: str) -> list[Cell]: ...
+    def get_cell(self, field_id: str, *, value: str) -> list[Cell]: ...
 
     def get_cell(
         self,
         field_id: str,
+        *,
         value: Optional[str] = None,
         absolute_row_index: Optional[int] = None,
         column_name: Optional[str] = None,
@@ -319,11 +321,11 @@ class GuiTableControl:
     # set cell value
     @overload
     def set_cell_value(
-        self, field_id: str, value: str, absolute_row_index: int, column_name: str
+        self, field_id: str, value: str, absolute_row_index: int, *, column_name: str
     ): ...
     @overload
     def set_cell_value(
-        self, field_id: str, value: str, absolute_row_index: int, column_title: str
+        self, field_id: str, value: str, absolute_row_index: int, *, column_title: str
     ): ...
 
     def set_cell_value(
@@ -331,6 +333,7 @@ class GuiTableControl:
         field_id: str,
         value: str,
         absolute_row_index: int,
+        *,
         column_name: Optional[str] = None,
         column_title: Optional[str] = None,
     ):
@@ -378,14 +381,19 @@ class GuiTableControl:
 
     # press cell object
     @overload
-    def press_cell(self, field_id: str, absolute_row_index: int, column_name: str): ...
+    def press_cell(
+        self, field_id: str, absolute_row_index: int, *, column_name: str
+    ): ...
     @overload
-    def press_cell(self, field_id: str, absolute_row_index: int, column_title: str): ...
+    def press_cell(
+        self, field_id: str, absolute_row_index: int, *, column_title: str
+    ): ...
 
     def press_cell(
         self,
         field_id: str,
         absolute_row_index: int,
+        *,
         column_name: Optional[str] = None,
         column_title: Optional[str] = None,
     ):
@@ -558,7 +566,7 @@ class GuiTableControl:
 
     def __extract_coordinates__(
         self, gui_table_control_cell_field_id: str
-    ) -> Union[tuple[int, int], None]:
+    ) -> tuple[int, int]:
         match = re.search(r"\[(-?\d+),(-?\d+)\]$", gui_table_control_cell_field_id)
         if match:
             try:
@@ -568,7 +576,9 @@ class GuiTableControl:
             except ValueError:
                 raise ValueError("Coordinates must be integers.")
         else:
-            return None
+            raise ValueError(
+                f"Could not extract coordinates from {gui_table_control_cell_field_id}"
+            )
 
     def __extract_field_id__(self, full_field_id: str) -> str:
         return full_field_id[full_field_id.index("wnd") :]

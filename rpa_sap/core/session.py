@@ -2,6 +2,7 @@ import win32com.client
 from contextlib import contextmanager
 from ..exceptions import SapSessionError, SapTransactionError
 from .ui_automation import ElementInteractor
+from .rfc import RfcConnection
 
 
 class SapSession:
@@ -12,9 +13,9 @@ class SapSession:
 
     def __init__(
         self,
-        com_session: win32com.client.CDispatch,
-        com_connection: win32com.client.CDispatch = None,
-        sap_functions: win32com.client.CDispatch = None,
+        com_session: win32com.client.CDispatch | None,
+        com_connection: win32com.client.CDispatch | None = None,
+        sap_functions: win32com.client.CDispatch | None = None,
     ):
         self.com_session = com_session
         self.com_connection = com_connection
@@ -24,6 +25,8 @@ class SapSession:
     @property
     def info(self) -> dict:
         """Returns basic information about the session."""
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         return {
             "user": self.com_session.Info.User.upper(),
             "sid": self.com_session.Info.SystemName.upper(),
@@ -38,10 +41,14 @@ class SapSession:
 
     @property
     def id(self) -> str:
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         return self.com_session.Id
 
     def findById(self, field_id: str):
         """Find an element by its ID within the active session."""
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         return self.com_session.findById(field_id)
 
     def run_transaction(self, transaction_code: str):
@@ -49,6 +56,8 @@ class SapSession:
         Runs SAP transaction.
         There is no need to add "/n" or go back to the start screen.
         """
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         self.com_session.StartTransaction(transaction_code)
         status = self.interactor.get_status_bar_message()
         if status.type == "E":
@@ -56,6 +65,8 @@ class SapSession:
 
     def stop_transaction(self):
         """Stops SAP transaction."""
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         self.com_session.EndTransaction()
 
     @contextmanager
@@ -72,6 +83,8 @@ class SapSession:
 
     def set_active_window(self, index: int):
         """Sets active window for active SAP session."""
+        if self.com_session is None:
+            raise SapSessionError("com_session is not available.")
         return self.com_session.findById(f"wnd[{index}]")
 
     @property
@@ -80,8 +93,13 @@ class SapSession:
         Lazy initialization of the RFC connection based on session credentials.
         Returns the Headless RfcConnection object.
         """
-        if not hasattr(self, "_rfc_client"):
+        if hasattr(self, "_rfc_client"):
+            return self._rfc_client
+
+        if not hasattr(self, "_rfc_credentials"):
             raise SapSessionError(
                 "RFC connection is not established. Password may not have been provided during session opening."
             )
+
+        self._rfc_client = RfcConnection(**self._rfc_credentials)
         return self._rfc_client

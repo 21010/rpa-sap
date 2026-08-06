@@ -41,7 +41,10 @@ class SQ01:
         self.interactor = sap_session.interactor
 
     def start_query(
-        self, query_name: str, user_group: str = None, variant_name: str = None
+        self,
+        query_name: str,
+        user_group: str | None = None,
+        variant_name: str | None = None,
     ):
         # Navigate to the transaction code for SQ01
         self.sap_session.run_transaction("SQ01")

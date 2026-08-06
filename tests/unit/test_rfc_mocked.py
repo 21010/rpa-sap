@@ -1,4 +1,7 @@
+import pytest
 from unittest.mock import MagicMock, patch
+
+pytest.importorskip("rpa_sap")
 from rpa_sap.core.rfc import RfcConnection
 
 

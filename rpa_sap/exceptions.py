@@ -38,3 +38,9 @@ class SapRfcError(SapRpaError):
     """Raised when there is an error executing a Remote Function Call (RFC) or connecting to SAP.Functions."""
 
     pass
+
+
+class SapODataError(SapRpaError):
+    """Raised when there is an error executing an OData request."""
+
+    pass

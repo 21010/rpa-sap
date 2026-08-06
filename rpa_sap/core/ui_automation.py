@@ -4,7 +4,14 @@ from typing import Any, Union
 from ..exceptions import SapElementNotFoundError
 
 
-class CoreResolutionMixin:
+class BaseMixin:
+    session: Any
+
+    def _get_object(self, field_id: str) -> Any:
+        raise NotImplementedError
+
+
+class CoreResolutionMixin(BaseMixin):
     """Provides core object resolution and existence checking."""
 
     def _get_object(self, field_id: str) -> Any:
@@ -63,7 +70,7 @@ class CoreResolutionMixin:
         return self.check_if_object_exists(field_id)
 
 
-class KeyboardWindowMixin:
+class KeyboardWindowMixin(BaseMixin):
     """Handles keyboard events and window-level interactions."""
 
     def send_v_key(self, key: int, window_index: int = 0) -> None:
@@ -95,7 +102,7 @@ class KeyboardWindowMixin:
         return StatusBar(status_bar.Text, status_bar.MessageType)
 
 
-class GeneralElementMixin:
+class GeneralElementMixin(BaseMixin):
     """Handles general element interactions like clicking and text entry."""
 
     def set_focus(self, field_id: str) -> None:
@@ -123,7 +130,7 @@ class GeneralElementMixin:
         self._get_object(field_id).doubleClick()
 
 
-class CheckboxComboboxMixin:
+class CheckboxComboboxMixin(BaseMixin):
     """Handles specific interactions with checkboxes and comboboxes."""
 
     def select_combobox_item(self, field_id: str, key_id: str) -> None:
@@ -147,7 +154,7 @@ class CheckboxComboboxMixin:
         return self._get_object(field_id).Selected
 
 
-class ContextMenuMixin:
+class ContextMenuMixin(BaseMixin):
     """Handles context menu interactions."""
 
     def select_context_menu_item(self, field_id: str, item_id: str) -> None:
@@ -159,7 +166,7 @@ class ContextMenuMixin:
         self._get_object(field_id).PressContextButton(item_id)
 
 
-class AdvancedPropertyMixin:
+class AdvancedPropertyMixin(BaseMixin):
     """Handles direct reading/writing of COM properties and methods."""
 
     def set_property(

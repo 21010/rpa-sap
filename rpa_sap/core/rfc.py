@@ -84,10 +84,12 @@ class RfcConnection:
         Returns:
             The RFC function COM object.
         """
+        if self.sap_functions is None:
+            raise SapRfcError("sap_functions is not available.")
         return self.sap_functions.Add(function_name)
 
     def read_table(
-        self, table_name: str, fields: list = None, options: list = None
+        self, table_name: str, fields: list | None = None, options: list | None = None
     ) -> list[dict]:
         """
         Reads a transparent table from SAP using RFC_READ_TABLE.
@@ -144,10 +146,10 @@ class RfcConnection:
     def call_bapi(
         self,
         bapi_name: str,
-        import_params: dict = None,
-        table_params: dict = None,
-        extract_tables: list = None,
-        extract_imports: list = None,
+        import_params: dict | None = None,
+        table_params: dict | None = None,
+        extract_tables: list | None = None,
+        extract_imports: list | None = None,
         commit: bool = False,
     ) -> dict:
         """

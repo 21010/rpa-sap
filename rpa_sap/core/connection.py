@@ -12,7 +12,7 @@ class _ProcessManager:
     """Helper class to manage Windows OS processes using psutil."""
 
     @staticmethod
-    def is_sap_running(username: str = None) -> bool:
+    def is_sap_running(username: str | None = None) -> bool:
         username = (username or getlogin()).upper()
         try:
             for proc in psutil.process_iter(["name", "username"]):
@@ -31,7 +31,7 @@ class _ProcessManager:
         return False
 
     @staticmethod
-    def close_process(process_name: str, username: str = None):
+    def close_process(process_name: str, username: str | None = None):
         username = (username or getlogin()).upper()
         try:
             for proc in psutil.process_iter(["name", "username"]):
@@ -74,6 +74,8 @@ class ConnectionManager:
         """Returns: Collection of all SAP connections"""
         if not self.application:
             self._initialize_engine()
+        if self.application is None:
+            raise SapConnectionError("Application object is not available.")
         return self.application.Connections
 
     def open_new_session(
@@ -173,6 +175,10 @@ class ConnectionManager:
     ):
         """Automates the SAP GUI UI login process."""
         session = sap_session.com_session
+        if session is None:
+            raise SapConnectionError(
+                "com_session is not available; cannot perform login."
+            )
 
         try:
             active_window = session.findById("wnd[0]")
@@ -263,7 +269,7 @@ class ConnectionManager:
                         active_connection.Sessions.Count - 1
                     ]
 
-            if not active_session:
+            if not active_session or not active_connection:
                 raise ValueError("Matching session not found.")
 
             return SapSession(active_session, active_connection)
@@ -308,27 +314,48 @@ class ConnectionManager:
             pass  # nosec B110
 
     def close_session(self, sap_session: SapSession):
-        """Closes a specific SAP session."""
-        if sap_session.com_connection:
-            try:
-                sap_session.com_connection.CloseSession(sap_session.com_session.Id)
-            except Exception as e:
-                warnings.warn(f"Failed to close session: {e}", UserWarning)
-            # Remove COM references to avoid GC issues / RPC crashes
+        """Closes a specific SAP session safely without raising COM exceptions."""
+        if sap_session.com_connection and sap_session.com_session:
+            # 1. Save COM references locally so we can use them to close the session
+            com_conn = sap_session.com_connection
+            session_id = sap_session.com_session.Id
+
+            # 2. Nullify all COM references in the Python wrapper.
             sap_session.com_session = None
             sap_session.com_connection = None
+            if hasattr(sap_session, "interactor"):
+                sap_session.interactor.session = None  # break circular ref if any
+            # 3. Force garbage collection. Any detached COM proxies will be destroyed
+            # session is still open!
+            import gc
 
-    def close_sap_logon(self, username: str = None):
-        """
-        Closes Sap Logon application opened by the specific user.
-        """
-        # Clear engine COM references before terminating process
-        self.application = None
-        self.sap_gui = None
-        _ProcessManager.close_process("saplogon.exe", username)
-        time.sleep(2)
+            gc.collect()
+            # 4. Actually close the session on the SAP side
+            try:
+                com_conn.CloseSession(session_id)
+            except Exception:
+                pass
 
-    def close_process(self, process_name: str, username: str = None):
+    def close_sap_logon(self, username: str | None = None):
+        """
+        Closes Sap Logon application safely.
+        """
+        try:
+            # 1. Drop the master COM references
+            self.application = None
+            self.sap_gui = None
+
+            # 2. Force GC to destroy them cleanly before killing the process
+            import gc
+
+            gc.collect()
+        except Exception:
+            pass  # nosec B110
+        # 3. Now it is safe to kill the process because no Python proxies
+        # are left waiting to be garbage collected.
+        self.close_process("saplogon.exe", username)
+
+    def close_process(self, process_name: str, username: str | None = None):
         """
         Closes Windows process opened by the specific user.
         """
