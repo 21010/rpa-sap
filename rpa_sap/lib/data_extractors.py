@@ -37,19 +37,19 @@ class GridViewExtractor(BaseExtractor):
     def __init__(self, grid_view: GridView):
         self.grid_view = grid_view
 
-    def to_array(self, grid_view_id: str) -> List[List]:
-        grid_obj = self.grid_view.get_object(grid_view_id)
+    def to_array(self, field_id: str, **kwargs: Any) -> List[List]:
+        grid_obj = self.grid_view.get_object(field_id)
         return [self._get_headers(grid_obj), *self._get_body(grid_obj)]
 
-    def to_dict(self, grid_view_id: str) -> Dict:
-        grid_obj = self.grid_view.get_object(grid_view_id)
+    def to_dict(self, field_id: str, **kwargs: Any) -> Dict:
+        grid_obj = self.grid_view.get_object(field_id)
         return {
             "columns": self._get_headers(grid_obj),
             "data": self._get_body(grid_obj),
         }
 
-    def to_dataframe(self, grid_view_id: str) -> DataFrame:
-        grid_obj = self.grid_view.get_object(grid_view_id)
+    def to_dataframe(self, field_id: str, **kwargs: Any) -> DataFrame:
+        grid_obj = self.grid_view.get_object(field_id)
         return DataFrame(
             data=self._get_body(grid_obj), columns=self._get_headers(grid_obj)
         )
@@ -79,7 +79,9 @@ class GuiTableControlExtractor(BaseExtractor):
     def __init__(self, table_control: GuiTableControl):
         self.table_control = table_control
 
-    def to_dataframe(self, field_id: str, entire_table: bool = True) -> DataFrame:
+    def to_dataframe(
+        self, field_id: str, entire_table: bool = True, **kwargs: Any
+    ) -> DataFrame:
         columns_header = self.table_control.get_table_header(field_id)
         sorted_indices = sorted(columns_header.keys())
         columns = [columns_header[i]["title"] for i in sorted_indices]
@@ -94,7 +96,7 @@ class GuiTableControlExtractor(BaseExtractor):
 
         return DataFrame(data, columns=columns)
 
-    def to_array(self, field_id: str) -> np.ndarray:
+    def to_array(self, field_id: str, **kwargs: Any) -> np.ndarray:
         table = self.table_control.__extract_table__(field_id)
         # Using indexes instead of names ensures uniqueness
         unique_col_indexes = sorted(list(set([x["column_index"] for x in table])))

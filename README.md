@@ -195,6 +195,29 @@ sq01.execute_query()
 sq01.to_local_file(folder_path="C:\\Exports", file_name="query_results.xls", file_type="xls")
 ```
 
+### 9. Integrating via SAP OData (REST)
+For modern SAP systems (like S/4HANA), OData is the preferred integration method. RPA-SAP provides an `ODataClient` with various authentication strategies (Basic, OAuth2, etc.) and handles CSRF tokens automatically for state-changing operations.
+
+```python
+from rpa_sap.core.odata import ODataClient, BasicAuthStrategy
+
+# 1. Choose your authentication strategy
+auth = BasicAuthStrategy("USERNAME", "password")
+# Or use OAuth2: auth = OAuth2Strategy("my-bearer-token")
+
+# 2. Initialize the client
+client = ODataClient("https://mysap.example.com/sap/opu/odata/sap/API_USER_SRV", auth)
+
+# 3. Query an EntitySet and get a Pandas DataFrame
+df = client.get_dataframe("UserSet", select=["UserID", "FullName"], top=50)
+print(df.head())
+
+# 4. Create a new Entity (CSRF token is fetched automatically)
+new_user = {"UserID": "NEW_RPA", "FullName": "RPA Bot User"}
+response = client.post("UserSet", payload=new_user)
+print("Created:", response)
+```
+
 ## Testing
 
 The project uses `pytest` and features a two-tier testing strategy:
@@ -208,6 +231,11 @@ The project uses `pytest` and features a two-tier testing strategy:
    ```sh
    uv run pytest -m "integration"
    ```
+
+## Changelog & Recent Updates
+- **Stability Fix**: Fixed `Windows Fatal COM exceptions (0x80010108, 0x800706ba)` that occurred on session closure. The library now explicitly detaches COM proxies and forces garbage collection before terminating the SAP logon process.
+- **Type Safety**: Full codebase audit using `pyrefly`. Resolved all static analysis errors, standardizing type hints and dependency injection (`BaseMixin`) across core components.
+- **Test Discoverability**: Improved pytest integration with IDEs (like VSCode) by gracefully skipping module imports (`pytest.importorskip`) during test collection when dependencies are missing.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

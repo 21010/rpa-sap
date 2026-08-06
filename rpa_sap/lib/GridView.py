@@ -339,9 +339,15 @@ class GridView:
             str: returns the state of the cell (e.g., checkbox checked/unchecked, editable, selected).
         """
         grid_view = self.get_object(grid_view_id)
-        r_index = row_index if row_index is not None else self.get_current_row_index
+        r_index = (
+            row_index
+            if row_index is not None
+            else self.get_current_row_index(grid_view_id)
+        )
         c_index = (
-            column_index if column_index is not None else self.get_current_column_index
+            column_index
+            if column_index is not None
+            else self.get_current_column_index(grid_view_id)
         )
         return grid_view.GetCellState(
             r_index, self.__get_column_name(grid_view, c_index)
@@ -364,9 +370,15 @@ class GridView:
             object: value (Any)
         """
         grid_view = self.get_object(grid_view_id)
-        r_index = row_index if row_index is not None else self.get_current_row_index
+        r_index = (
+            row_index
+            if row_index is not None
+            else self.get_current_row_index(grid_view_id)
+        )
         c_index = (
-            column_index if column_index is not None else self.get_current_column_index
+            column_index
+            if column_index is not None
+            else self.get_current_column_index(grid_view_id)
         )
         return grid_view.GetCellValue(
             r_index, self.__get_column_name(grid_view, c_index)

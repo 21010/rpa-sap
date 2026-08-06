@@ -1,9 +1,5 @@
 import os
 import pytest
-from dotenv import load_dotenv
-from rpa_sap import ConnectionManager, RfcConnection
-
-load_dotenv()
 
 
 def pytest_runtest_setup(item):
@@ -21,6 +17,12 @@ def pytest_collection_modifyitems(items):
 
 @pytest.fixture(scope="session")
 def secrets():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+    
     # Return a dictionary of secrets mapping to old json format
     return {
         "connection_string": os.getenv("SAP_CONNECTION_STRING", "/H/server/S/3200"),
@@ -33,6 +35,7 @@ def secrets():
 
 @pytest.fixture(scope="module")
 def connection_manager():
+    from rpa_sap import ConnectionManager
     manager = ConnectionManager()
     yield manager
     try:
@@ -60,6 +63,7 @@ def sap_session(connection_manager, secrets):
 
 @pytest.fixture
 def rfc_session(secrets):
+    from rpa_sap import RfcConnection
     rfc = RfcConnection(
         secrets["connection_string"],
         secrets["user_id"],
