@@ -1,4 +1,5 @@
 import re
+import logging
 import win32com.client
 import pythoncom
 from ..exceptions import SapSessionError, SapRfcError
@@ -65,8 +66,8 @@ class RfcConnection:
         if hasattr(self, "connection") and self.connection is not None:
             try:
                 self.connection.Logoff()
-            except Exception:
-                pass
+            except Exception as e:
+                logging.debug(f"Failed to log off RFC connection: {e}")
 
     def __enter__(self):
         return self

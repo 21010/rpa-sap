@@ -4,13 +4,13 @@ requests_mock = pytest.importorskip("requests_mock")
 pd = pytest.importorskip("pandas")
 pytest.importorskip("rpa_sap")
 
-from rpa_sap.core.odata import (
+from rpa_sap.core.odata import (  # noqa: E402
     ODataClient,
     BasicAuthStrategy,
     OAuth2Strategy,
     NoAuthStrategy,
 )
-from rpa_sap.exceptions import SapODataError
+from rpa_sap.exceptions import SapODataError  # noqa: E402
 
 BASE_URL = "https://mysap.example.com/sap/opu/odata/sap/API_USER_SRV"
 
