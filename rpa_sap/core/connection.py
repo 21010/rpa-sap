@@ -1,6 +1,7 @@
 from os import getlogin
 import subprocess  # nosec B404
 import time
+import logging
 import win32com.client
 import warnings
 import psutil
@@ -96,7 +97,7 @@ class ConnectionManager:
 
         if not sap_running:
             try:
-                subprocess.Popen([sapgui_path, connection_string])
+                subprocess.Popen([sapgui_path, connection_string])  # nosec B603
             except Exception as ex:
                 self.close_sap_logon()
                 raise SapProcessError(f"Failed to start {sapgui_path}") from ex
@@ -131,7 +132,7 @@ class ConnectionManager:
                     time.sleep(2)
                     sap_running = False
                     try:
-                        subprocess.Popen([sapgui_path, connection_string])
+                        subprocess.Popen([sapgui_path, connection_string])  # nosec B603
                     except Exception as ex:
                         raise SapProcessError(f"Failed to start {sapgui_path}") from ex
                     time.sleep(4)
@@ -180,11 +181,12 @@ class ConnectionManager:
                 "com_session is not available; cannot perform login."
             )
 
+        active_window = None
         try:
             active_window = session.findById("wnd[0]")
             active_window.maximize()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.debug(f"Could not maximize SAP window: {e}")
 
         # Wait up to 5 seconds for the login screen to render. If it doesn't, assume SSO bypassed it.
         user_field = None
@@ -202,6 +204,8 @@ class ConnectionManager:
                     session.findById("wnd[0]/usr/pwdRSYST-BCODE").Text = password
                 session.findById("wnd[0]/usr/txtRSYST-MANDT").Text = client
                 session.findById("wnd[0]/usr/txtRSYST-LANGU").Text = language
+                if active_window is None:
+                    active_window = session.findById("wnd[0]")
                 active_window.SendVKey(0)
             except Exception as e:
                 warnings.warn(f"Error during login automation: {e}", UserWarning)
@@ -310,8 +314,8 @@ class ConnectionManager:
                         connection.CloseSession(session.Id)
                     except Exception as e:
                         warnings.warn(f"Failed to close session: {e}", UserWarning)
-        except Exception:
-            pass  # nosec B110
+        except Exception as e:
+            logging.debug(f"Failed to close all sessions: {e}")
 
     def close_session(self, sap_session: SapSession):
         """Closes a specific SAP session safely without raising COM exceptions."""
@@ -333,8 +337,8 @@ class ConnectionManager:
             # 4. Actually close the session on the SAP side
             try:
                 com_conn.CloseSession(session_id)
-            except Exception:
-                pass
+            except Exception as e:
+                logging.debug(f"Failed to safely close session: {e}")
 
     def close_sap_logon(self, username: str | None = None):
         """
