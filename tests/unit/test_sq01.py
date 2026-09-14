@@ -15,7 +15,7 @@ def mock_sap_session():
 def test_start_query_invalid_query_area(mock_sap_session):
     sq01 = SQ01(mock_sap_session)
     with pytest.raises(ValueError, match="Invalid query_area: 'Invalid'. Must be 'Standard' or 'Global'"):
-        sq01.start_query("QUERY_NAME", query_area="Invalid")
+        sq01.start_query("QUERY_NAME", query_area="Invalid")  # type: ignore
 
 
 def test_start_query_valid_query_area(mock_sap_session):
