@@ -1,3 +1,4 @@
+from typing import Literal
 from ..core.session import SapSession
 from ..exceptions import SapElementNotFoundError
 
@@ -17,6 +18,12 @@ class SQ01Locators:
     BTN_SEARCH_USER_GROUP = "wnd[3]/tbar[0]/btn[0]"
     SHELL_USER_GROUP_GRID = "wnd[1]/usr/cntlGRID1/shellcont/shell"
     BTN_USER_GROUP_OK = "wnd[1]/tbar[0]/btn[0]"
+
+    # Environment
+    MENU_QUERY_AREAS = "wnd[0]/mbar/menu[5]/menu[0]"
+    RAD_STANDARD_AREA = "wnd[1]/usr/radRAD1"
+    RAD_GLOBAL_AREA = "wnd[1]/usr/radRAD2"
+    BTN_CHOOSE = "wnd[1]/tbar[0]/btn[2]"
 
     # Query execution
     CTXT_QUERY_NAME = "wnd[0]/usr/ctxtRS38R-QNUM"
@@ -43,11 +50,25 @@ class SQ01:
     def start_query(
         self,
         query_name: str,
+        query_area: Literal["Standard", "Global"] | None,
         user_group: str | None = None,
         variant_name: str | None = None,
     ):
         # Navigate to the transaction code for SQ01
         self.sap_session.run_transaction("SQ01")
+
+        # Change Query Area if needed
+        if query_area:
+            if query_area not in ("Standard", "Global"):
+                raise ValueError(f"Invalid query_area: '{query_area}'. Must be 'Standard' or 'Global'")
+
+            self.interactor.select(SQ01Locators.MENU_QUERY_AREAS)
+            match query_area:
+                case "Standard":
+                    self.interactor.select(SQ01Locators.RAD_STANDARD_AREA)
+                case "Global":
+                    self.interactor.select(SQ01Locators.RAD_GLOBAL_AREA)
+            self.interactor.press_button(SQ01Locators.BTN_CHOOSE)
 
         # Change User Group if needed
         if user_group:
@@ -110,9 +131,7 @@ class SQ01:
         self.interactor.set_text(SQ01Locators.CTXT_DIRECTORY_PATH, folder_path)
         self.interactor.set_text(SQ01Locators.CTXT_FILE_NAME, file_name)
 
-        encoding = (
-            "0000" if file_type == "xls" else "0004" if file_type == "csv" else "0000"
-        )
+        encoding = {"xls": "0000", "csv": "0004"}.get(file_type, "0000")
         self.interactor.set_text(SQ01Locators.CTXT_FILE_ENCODING, encoding)
 
         self.interactor.press_button(SQ01Locators.BTN_SAVE_FILE)
