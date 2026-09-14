@@ -41,3 +41,6 @@ dev_rfc.log
 dev_rfc.trc
 dev_icm.log
 dev_icm.trc
+
+# Ignore tests Excel file
+/tests/table.xlsx
