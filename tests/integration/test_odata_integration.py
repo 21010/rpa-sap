@@ -6,6 +6,7 @@ import pytest
 def live_odata_client():
     try:
         from dotenv import load_dotenv
+
         load_dotenv()
     except ImportError:
         pass
@@ -21,6 +22,7 @@ def live_odata_client():
         pytest.skip("OData credentials not properly configured in .env")
 
     from rpa_sap.core.odata import ODataClient, BasicAuthStrategy
+
     auth = BasicAuthStrategy(str(odata_user), str(odata_password))
     return ODataClient(str(odata_url), auth)
 
@@ -46,6 +48,7 @@ def test_live_get_business_partners(live_odata_client):
         assert len(df) <= 5, "Received more than the requested $top=5 records."
     except Exception as e:
         from rpa_sap.exceptions import SapODataError
+
         if isinstance(e, SapODataError):
             pytest.fail(f"OData integration test failed: {e}")
         raise e

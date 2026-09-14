@@ -22,3 +22,4 @@ Instead, please report vulnerabilities using **[GitHub Private Vulnerability Rep
 4. Provide a clear and detailed description of the vulnerability, including steps to reproduce it, potential impact, and any suggested mitigations.
 
 We will acknowledge receipt of your vulnerability report within 48 hours and strive to release a patch or mitigation plan as quickly as possible.
+

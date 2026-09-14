@@ -60,7 +60,9 @@ class SQ01:
         # Change Query Area if needed
         if query_area:
             if query_area not in ("Standard", "Global"):
-                raise ValueError(f"Invalid query_area: '{query_area}'. Must be 'Standard' or 'Global'")
+                raise ValueError(
+                    f"Invalid query_area: '{query_area}'. Must be 'Standard' or 'Global'"
+                )
 
             self.interactor.select(SQ01Locators.MENU_QUERY_AREAS)
             match query_area:
