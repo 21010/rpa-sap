@@ -73,3 +73,15 @@ jobs:
           name: coverage-report
           path: coverage.xml
           retention-days: 14
+
+  secret-scan:
+    name: TruffleHog Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
